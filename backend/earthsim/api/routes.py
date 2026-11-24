@@ -114,6 +114,14 @@ def data_status() -> dict:
     return assess()
 
 
+@router.get("/space/tle")
+def space_tle(groups: str | None = None, refresh: bool = False) -> dict:
+    """Cached CelesTrak GP/TLE sets grouped by stations/weather/starlink."""
+    from ..ingest import satellites
+    selected = [g.strip() for g in groups.split(",")] if groups else None
+    return satellites.get_tles(selected, force=refresh)
+
+
 @router.get("/obs/air-quality")
 def air_quality(limit: int = 3000) -> dict:
     """OpenAQ v3 ground air-quality stations (µg/m³ and PM2.5 AQI)."""

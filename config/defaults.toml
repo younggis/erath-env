@@ -24,6 +24,7 @@ openaq_api_key = ""
 openaq_page_size = 100
 openaq_max_pages = 20
 openaq_stale_after_hours = 6
+tle_cache_ttl_seconds = 7200
 ndbc_stale_after_minutes = 240
 satellite_poll_seconds = 300
 satellite_stale_after_minutes = 45

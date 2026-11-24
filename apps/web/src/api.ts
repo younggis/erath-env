@@ -79,6 +79,14 @@ export interface Buoy {
   values: Record<string, number | null>
 }
 
+export interface TleRecord {
+  name: string
+  norad_id: string
+  line1: string
+  line2: string
+  group: string
+}
+
 export interface DisasterPolygon {
   event_id: string
   event_type: string
@@ -136,6 +144,8 @@ export const api = {
       // the station layer must only show METAR reports.
       source_id: 'awc_metar',
     })}`),
+  tle: () => get<{ satellites: TleRecord[]; count: number; groups: Record<string, { count: number }> }>(
+    '/api/v1/space/tle'),
   gdacsPolygons: () => get<{ polygons: DisasterPolygon[]; events: number; received_at: string | null }>(
     '/api/v1/realtime/gdacs/polygons'),
   airQuality: () => get<{ stations: AirStation[]; count: number; note: string }>(

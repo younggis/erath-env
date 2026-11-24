@@ -82,6 +82,7 @@ class Settings:
     openaq_page_size: int = 100
     openaq_max_pages: int = 20
     openaq_stale_after_hours: int = 6
+    tle_cache_ttl_seconds: int = 7200
     ndbc_stale_after_minutes: int = 240
     satellite_poll_seconds: int = 300
     satellite_stale_after_minutes: int = 45
@@ -148,6 +149,7 @@ class Settings:
             openaq_page_size=int(g("EARTHSIM_OPENAQ_PAGE_SIZE", ing.get("openaq_page_size", 100), int)),
             openaq_max_pages=int(g("EARTHSIM_OPENAQ_MAX_PAGES", ing.get("openaq_max_pages", 20), int)),
             openaq_stale_after_hours=int(g("EARTHSIM_OPENAQ_STALE_AFTER_HOURS", ing.get("openaq_stale_after_hours", 6), int)),
+            tle_cache_ttl_seconds=int(g("EARTHSIM_TLE_CACHE_TTL_SECONDS", ing.get("tle_cache_ttl_seconds", 7200), int)),
             ndbc_stale_after_minutes=int(g("EARTHSIM_NDBC_STALE_AFTER_MINUTES", ing.get("ndbc_stale_after_minutes", 240), int)),
             satellite_poll_seconds=int(g("EARTHSIM_SATELLITE_POLL_SECONDS", ing.get("satellite_poll_seconds", 300), int)),
             satellite_stale_after_minutes=int(g("EARTHSIM_SATELLITE_STALE_AFTER_MINUTES", ing.get("satellite_stale_after_minutes", 45), int)),

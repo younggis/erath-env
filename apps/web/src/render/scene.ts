@@ -14,6 +14,7 @@ import { BuoyLayer } from './buoys'
 import { LightningLayer } from './lightning'
 import { AirQualityLayer } from './airquality'
 import { DisasterPolygonLayer } from './disasterPolygons'
+import { SatelliteLayer } from './satellites'
 import { StationLayer } from './stations'
 import { TerrainLayer } from './terrain'
 import { SkyLayer } from './sky'
@@ -63,6 +64,7 @@ export class EarthRenderer {
   private lightning = new LightningLayer()
   private airQuality = new AirQualityLayer()
   private disasters = new DisasterPolygonLayer()
+  private satellites = new SatelliteLayer()
   private trailsWanted = true
   private windVisible = true
   private gpuWindEnabled = false
@@ -205,6 +207,9 @@ export class EarthRenderer {
     this.scene.add(this.airQuality.points)
     this.scene.add(this.disasters.lines)
     this.scene.add(this.disasters.badges)
+    this.scene.add(this.satellites.points)
+    this.scene.add(this.satellites.orbits)
+    this.scene.add(this.satellites.footprints)
     this.scene.add(this.jet.lines)
     this.scene.add(this.stations.points)
     this.scene.add(this.aurora.mesh)
@@ -422,6 +427,8 @@ export class EarthRenderer {
   setAirQualityVisible(v: boolean): void { this.airQuality.setVisible(v) }
   setDisasterPolygons(polygons: import('./disasterPolygons').DisasterPolygon[]): void { this.disasters.setPolygons(polygons) }
   setDisasterPolygonsVisible(v: boolean): void { this.disasters.setVisible(v) }
+  setTles(tles: import('./satelliteOrbit').TleRecord[]): void { this.satellites.setTles(tles) }
+  setSatellitesVisible(v: boolean): void { this.satellites.setVisible(v) }
 
   setWind(data: WindData | null): void {
     this.wind.setWind(data)
@@ -675,6 +682,7 @@ export class EarthRenderer {
     this.solarWind.update(this.elapsed)
     this.volume.update(this.camera.position, sunDir, this.elapsed)
     this.lightning.update()
+    this.satellites.update(now)
     // High-resolution satellite tiles for the current view centre. Update at
     // most a few times per second; TileLayer dedups identical tile keys.
     this.tileAccum = (this.tileAccum || 0) + dt
@@ -719,7 +727,7 @@ export class EarthRenderer {
     this.pauseLoop()
     this.resizeObserver.disconnect()
     this.controls.dispose()
-    this.field.dispose(); this.wind.dispose(); this.gpuWind.dispose(); this.trails.dispose(); this.buoys.dispose(); this.lightning.dispose(); this.airQuality.dispose(); this.disasters.dispose(); this.jet.dispose(); this.stations.dispose()
+    this.field.dispose(); this.wind.dispose(); this.gpuWind.dispose(); this.trails.dispose(); this.buoys.dispose(); this.lightning.dispose(); this.airQuality.dispose(); this.disasters.dispose(); this.satellites.dispose(); this.jet.dispose(); this.stations.dispose()
     if (this.hiresMesh) {
       this.scene.remove(this.hiresMesh)
       this.hiresMesh.geometry.dispose()

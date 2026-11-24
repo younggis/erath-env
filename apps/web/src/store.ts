@@ -1,6 +1,6 @@
 /** Central reactive store. Vue state stays separate from the Three.js loop. */
 import { reactive, computed } from 'vue'
-import { api, type Layer, type Frame, type Sample, type Station, type Buoy, type LightningStrike, type AirStation, type DisasterPolygon } from './api'
+import { api, type Layer, type Frame, type Sample, type Station, type Buoy, type LightningStrike, type AirStation, type DisasterPolygon, type TleRecord } from './api'
 import { sortLayers } from './layerOrder'
 import type { GridInfo } from './earth'
 import type { VolumeData } from './render/types'
@@ -65,6 +65,8 @@ const state = reactive({
   showAirQuality: false,
   disasterPolygons: [] as DisasterPolygon[],
   showDisasterPolygons: false,
+  tles: [] as TleRecord[],
+  showSatellites: false,
   focusedDisasterId: '',
   focusedAirStationId: '',
   /** Set by the location bar; GlobeView watches and focuses the globe. */
@@ -124,6 +126,15 @@ export const store = {
     s => s.station_id === state.focusedAirStationId) || null),
   focusedDisaster: computed(() => state.disasterPolygons.find(
     p => p.event_id === state.focusedDisasterId) || null),
+
+  async loadTles() {
+    try {
+      const res = await api.tle()
+      state.tles = res.satellites
+    } catch {
+      state.tles = []
+    }
+  },
 
   async loadDisasterPolygons() {
     try {
