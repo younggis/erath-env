@@ -349,25 +349,9 @@ def firms_rows(text: str, received: str) -> list[dict]:
 
 
 def refresh_firms() -> dict:
-    src = "nasa_firms"
-    try:
-        key = get_settings().firms_map_key.strip()
-        if not key:
-            raise IngestError("MISSING_API_KEY", "未配置 EARTHSIM_FIRMS_MAP_KEY，FIRMS 火点未启用")
-        received = to_iso(datetime.now(timezone.utc))
-        text = _get_text(FIRMS_URL.format(key=key), timeout=90)
-        rows = firms_rows(text, received)
-        if not rows:
-            raise IngestError("NO_EVENTS", "FIRMS 未返回火点")
-        repo.insert_observations(rows)
-        repo.delete_observations_before([src], to_iso(
-            datetime.now(timezone.utc) - timedelta(hours=36)))
-        mark_success(src, {"events": len(rows)})
-        return {"ok": True, "events": len(rows)}
-    except Exception as e:  # noqa: BLE001
-        err = e if isinstance(e, IngestError) else IngestError("FETCH_FAILED", str(e))
-        mark_failure(src, err)
-        return {"ok": False, "error": err.code}
+    # FRP filtering and graceful degradation live in the dedicated adapter.
+    from . import firms
+    return firms.refresh()
 
 
 _REFRESHERS = {

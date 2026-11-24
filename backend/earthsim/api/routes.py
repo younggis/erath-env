@@ -406,6 +406,18 @@ def realtime_tracks() -> dict:
     return read_realtime("gdacs_tracks.json") or {"tracks": [], "received_at": None}
 
 
+@router.get("/realtime/fires")
+def realtime_fires(limit: int = 6000) -> dict:
+    """NASA FIRMS active fire hotspots (EPSG:4326, FRP in MW)."""
+    from ..ingest import firms
+    status = firms.status()
+    if not status["enabled"]:
+        return {**status, "count": 0, "fires": []}
+    rows = repo.query_stations(None, None, source_id="nasa_firms")
+    rows = [r for r in rows if -180 <= r["lon"] <= 180 and -90 <= r["lat"] <= 90]
+    return {**status, "count": min(len(rows), limit), "fires": rows[:limit]}
+
+
 @router.get("/realtime/summary")
 def realtime_summary() -> dict:
     """Compact overview of every real-time feed for UI status."""

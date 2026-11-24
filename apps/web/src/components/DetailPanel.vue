@@ -164,7 +164,14 @@ const valFmt = (v: number | null) => v === null ? '—' : (Math.abs(v) >= 100 ? 
       <div class="kv"><span>来源</span><b>{{ event.source_id }}</b></div>
       <div class="kv"><span>观测时刻</span><b>{{ event.observed_at }}</b></div>
       <div class="kv"><span>位置</span><b>{{ event.lat.toFixed(2) }}°, {{ event.lon.toFixed(2) }}°</b></div>
-      <div class="kv" v-for="[k, v] in eventRows" :key="k"><span>{{ k }}</span><b>{{ fmt(v) }}</b></div>
+      <template v-if="event.source_id === 'nasa_firms'">
+        <div class="fire-card">
+          <div><span>FRP 辐射功率</span><b>{{ fmt(event.values?.frp_mw) }} MW</b></div>
+          <div><span>置信度</span><b>{{ event.values?.confidence || '—' }}</b></div>
+          <div><span>卫星 / 昼夜</span><b>{{ event.values?.satellite || '—' }} · {{ event.values?.day_night || '—' }}</b></div>
+        </div>
+      </template>
+      <div class="kv" v-for="[k, v] in eventRows.filter(([key]) => !['frp_mw','confidence','satellite','daynight'].includes(key))" :key="k"><span>{{ k }}</span><b>{{ fmt(v) }}</b></div>
       <div class="kv" v-if="event.values?.report_url || event.values?.link">
         <span>原文</span>
         <a :href="event.values?.report_url || event.values?.link" target="_blank" rel="noopener">打开 ↗</a>
@@ -215,6 +222,9 @@ h3 { margin: 6px 0 12px; font-size: 14px; color: #8fe8c0; }
 .wind-grid span { font-size: 10px; color: var(--muted); }
 .wind-grid b { font: 600 12px ui-monospace, monospace; }
 .wind-card p { font-size: 9.5px; color: var(--muted); margin: 8px 0 0; line-height: 1.5; }
+.fire-card { margin: 10px 0; padding: 10px; border-radius: 8px; background: rgba(255,120,60,.07); border: 1px solid rgba(255,130,60,.22); display: grid; gap: 6px; }
+.fire-card div { display: flex; justify-content: space-between; gap: 8px; font-size: 11px; color: var(--muted); }
+.fire-card b { color: #ffb072; font: 600 12px ui-monospace, monospace; }
 .kv { display: flex; justify-content: space-between; gap: 10px; font-size: 11px; padding: 5px 0; color: var(--muted); }
 .kv b { color: var(--text); font-weight: 500; text-align: right; }
 .kv a { color: var(--accent); font-size: 11px; text-decoration: none; }
