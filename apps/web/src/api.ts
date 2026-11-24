@@ -144,6 +144,8 @@ export const api = {
       // the station layer must only show METAR reports.
       source_id: 'awc_metar',
     })}`),
+  cables: () => get<{ features: any[] }>('/api/v1/infra/cables?type=cables'),
+  cableLandings: () => get<{ features: any[] }>('/api/v1/infra/cables?type=landing'),
   tle: () => get<{ satellites: TleRecord[]; count: number; groups: Record<string, { count: number }> }>(
     '/api/v1/space/tle'),
   gdacsPolygons: () => get<{ polygons: DisasterPolygon[]; events: number; received_at: string | null }>(

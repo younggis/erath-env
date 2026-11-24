@@ -386,6 +386,10 @@ onMounted(async () => {
   renderer.setAirQualityVisible(store.state.showAirQuality)
   renderer.setDisasterPolygonsVisible(store.state.showDisasterPolygons)
   renderer.setSatellitesVisible(store.state.showSatellites)
+  renderer.setCablesVisible(store.state.showCables)
+  if (store.state.showCables) {
+    store.loadCables().then(() => renderer?.setCables(store.state.cables, store.state.cableLandings))
+  }
   if (store.state.showSatellites) {
     store.loadTles().then(() => renderer?.setTles(store.state.tles))
   }
@@ -542,6 +546,10 @@ watch(() => store.state.disasterPolygons, v => renderer?.setDisasterPolygons(v))
 watch(() => store.state.showSatellites, (v) => {
   renderer?.setSatellitesVisible(v)
   if (v) store.loadTles().then(() => renderer?.setTles(store.state.tles))
+})
+watch(() => store.state.showCables, (v) => {
+  renderer?.setCablesVisible(v)
+  if (v) store.loadCables().then(() => renderer?.setCables(store.state.cables, store.state.cableLandings))
 })
 watch(() => store.state.showSolarWind, v => renderer?.setSolarWindVisible(v))
 watch(() => store.state.showLightning, (v) => {

@@ -67,6 +67,9 @@ const state = reactive({
   showDisasterPolygons: false,
   tles: [] as TleRecord[],
   showSatellites: false,
+  cables: [] as any[],
+  cableLandings: [] as any[],
+  showCables: false,
   focusedDisasterId: '',
   focusedAirStationId: '',
   /** Set by the location bar; GlobeView watches and focuses the globe. */
@@ -126,6 +129,17 @@ export const store = {
     s => s.station_id === state.focusedAirStationId) || null),
   focusedDisaster: computed(() => state.disasterPolygons.find(
     p => p.event_id === state.focusedDisasterId) || null),
+
+  async loadCables() {
+    try {
+      const [cables, landings] = await Promise.all([api.cables(), api.cableLandings()])
+      state.cables = cables.features
+      state.cableLandings = landings.features
+    } catch {
+      state.cables = []
+      state.cableLandings = []
+    }
+  },
 
   async loadTles() {
     try {

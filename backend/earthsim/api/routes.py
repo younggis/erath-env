@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from fastapi import APIRouter, HTTPException, Query, Request
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, Response
 
 from ..config import get_settings, REPO_ROOT
 from ..catalog import repository as repo
@@ -112,6 +112,20 @@ def data_status() -> dict:
     """Live-vs-demo / freshness assessment for every dataset."""
     from ..freshness import assess
     return assess()
+
+
+@router.get("/infra/cables")
+def infra_cables(request: Request, type: str = "cables") -> Response:
+    """Cached TeleGeography cable / landing-point GeoJSON with ETag revalidation."""
+    from ..ingest import cables
+    asset = cables.read_asset(type)
+    if not asset:
+        raise ApiError("NO_CABLE_DATA", "尚无海缆 GeoJSON；先运行 sources refresh --source telegeography", 404)
+    payload, etag = asset
+    headers = {"ETag": etag, "Cache-Control": "public, max-age=3600"}
+    if request.headers.get("if-none-match") == etag:
+        return Response(status_code=304, headers=headers)
+    return Response(content=payload, media_type="application/json", headers=headers)
 
 
 @router.get("/space/tle")

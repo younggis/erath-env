@@ -16,6 +16,7 @@ import { AirQualityLayer } from './airquality'
 import { DisasterPolygonLayer } from './disasterPolygons'
 import { SatelliteLayer } from './satellites'
 import { FlightTrailLayer } from './flightTrails'
+import { CableLayer } from './cables'
 import { StationLayer } from './stations'
 import { TerrainLayer } from './terrain'
 import { SkyLayer } from './sky'
@@ -67,6 +68,7 @@ export class EarthRenderer {
   private disasters = new DisasterPolygonLayer()
   private satellites = new SatelliteLayer()
   private flightTrails = new FlightTrailLayer()
+  private cables = new CableLayer()
   private trailsWanted = true
   private windVisible = true
   private gpuWindEnabled = false
@@ -213,6 +215,8 @@ export class EarthRenderer {
     this.scene.add(this.satellites.orbits)
     this.scene.add(this.satellites.footprints)
     this.scene.add(this.flightTrails.lines)
+    this.scene.add(this.cables.lines)
+    this.scene.add(this.cables.landings)
     this.scene.add(this.jet.lines)
     this.scene.add(this.stations.points)
     this.scene.add(this.aurora.mesh)
@@ -430,6 +434,8 @@ export class EarthRenderer {
   setAirQualityVisible(v: boolean): void { this.airQuality.setVisible(v) }
   setDisasterPolygons(polygons: import('./disasterPolygons').DisasterPolygon[]): void { this.disasters.setPolygons(polygons) }
   setDisasterPolygonsVisible(v: boolean): void { this.disasters.setVisible(v) }
+  setCables(cables: any[], landings: any[]): void { this.cables.setData(cables, landings) }
+  setCablesVisible(v: boolean): void { this.cables.setVisible(v) }
   setFlightTrails(events: import('../realtime').RealtimeEvent[]): void { this.flightTrails.setFlights(events) }
   setFlightTrailsVisible(v: boolean): void { this.flightTrails.setVisible(v) }
   setTles(tles: import('./satelliteOrbit').TleRecord[]): void { this.satellites.setTles(tles) }
@@ -732,7 +738,7 @@ export class EarthRenderer {
     this.pauseLoop()
     this.resizeObserver.disconnect()
     this.controls.dispose()
-    this.field.dispose(); this.wind.dispose(); this.gpuWind.dispose(); this.trails.dispose(); this.buoys.dispose(); this.lightning.dispose(); this.airQuality.dispose(); this.disasters.dispose(); this.satellites.dispose(); this.flightTrails.dispose(); this.jet.dispose(); this.stations.dispose()
+    this.field.dispose(); this.wind.dispose(); this.gpuWind.dispose(); this.trails.dispose(); this.buoys.dispose(); this.lightning.dispose(); this.airQuality.dispose(); this.disasters.dispose(); this.satellites.dispose(); this.flightTrails.dispose(); this.cables.dispose(); this.jet.dispose(); this.stations.dispose()
     if (this.hiresMesh) {
       this.scene.remove(this.hiresMesh)
       this.hiresMesh.geometry.dispose()
