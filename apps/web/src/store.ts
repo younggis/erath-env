@@ -1,6 +1,6 @@
 /** Central reactive store. Vue state stays separate from the Three.js loop. */
 import { reactive, computed } from 'vue'
-import { api, type Layer, type Frame, type Sample, type Station } from './api'
+import { api, type Layer, type Frame, type Sample, type Station, type Buoy } from './api'
 import { sortLayers } from './layerOrder'
 import type { GridInfo } from './earth'
 import type { VolumeData } from './render/types'
@@ -55,6 +55,10 @@ const state = reactive({
   /** Set by a direct raycaster pick on a station marker. */
   focusedStationId: '' as string,
   focusedEvent: null as { source: EventType; id: string } | null,
+  /** NOAA NDBC ocean buoy observations. */
+  buoys: [] as Buoy[],
+  showBuoys: false,
+  focusedBuoyId: '',
   /** Set by the location bar; GlobeView watches and focuses the globe. */
   focusRequest: null as { lon: number; lat: number; distance?: number } | null,
   savedRegions: [] as Array<{ name: string; lon: number; lat: number; distance?: number }>,
@@ -107,6 +111,16 @@ export const store = {
   currentFrame: computed(() => state.frames[state.frameIndex] || null),
   activeLayer: computed(() => state.layers.find(l => l.layer_id === state.activeLayerId) || null),
   currentTime: computed(() => state.frames[state.frameIndex]?.valid_time || ''),
+  focusedBuoy: computed(() => state.buoys.find(b => b.station_id === state.focusedBuoyId) || null),
+
+  async loadBuoys() {
+    try {
+      const res = await api.buoys()
+      state.buoys = res.buoys
+    } catch {
+      state.buoys = []
+    }
+  },
 
   async init() {
     try {

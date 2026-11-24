@@ -69,6 +69,16 @@ async function post<T = any>(path: string, body: any): Promise<T> {
   return res.json() as Promise<T>
 }
 
+export interface Buoy {
+  station_id: string
+  source_id: string
+  observed_at: string
+  received_at: string
+  lon: number
+  lat: number
+  values: Record<string, number | null>
+}
+
 export const api = {
   health: () => get<{ status: string; mode: string; version: string }>('/api/v1/health'),
   sources: () => get<any>('/api/v1/sources'),
@@ -96,6 +106,8 @@ export const api = {
       // the station layer must only show METAR reports.
       source_id: 'awc_metar',
     })}`),
+  buoys: () => get<{ buoys: Buoy[]; count: number; source_id: string; generated_at: string }>(
+    '/api/v1/obs/buoys'),
   refresh: (sourceId: string) => post<{ task_id: string; source: string; state: string; reused?: boolean }>(
     `/api/v1/sources/${encodeURIComponent(sourceId)}/refresh`, {}),
   refreshTask: (taskId: string) => get<any>(`/api/v1/sources/refresh/${encodeURIComponent(taskId)}`),

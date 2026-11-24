@@ -24,6 +24,7 @@ DATASETS = {
     "noaa-oisst": ("noaa_oisst", "forecast", "init_time", "oisst_stale_after_hours", "hours"),
     "cams-air-quality": ("cams", "forecast", "init_time", "cams_stale_after_hours", "hours"),
     "noaa-gefs": ("noaa_gefs", "forecast", "init_time", "gfs_stale_after_hours", "hours"),
+    "noaa-ndbc": ("noaa_ndbc", "observation", "observed_end", "ndbc_stale_after_minutes", "minutes"),
 }
 
 

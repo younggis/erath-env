@@ -73,6 +73,7 @@ class Settings:
     gfs_stale_after_hours: int = 13
     oisst_stale_after_hours: int = 480  # AVHRR-only analysis lags ~2 weeks
     cams_stale_after_hours: int = 24
+    ndbc_stale_after_minutes: int = 240
     satellite_poll_seconds: int = 300
     satellite_stale_after_minutes: int = 45
     satellite_initial_frames: int = 6
@@ -129,6 +130,7 @@ class Settings:
             gfs_stale_after_hours=int(g("EARTHSIM_GFS_STALE_AFTER_HOURS", ing.get("gfs_stale_after_hours", 13), int)),
             oisst_stale_after_hours=int(g("EARTHSIM_OISST_STALE_AFTER_HOURS", ing.get("oisst_stale_after_hours", 480), int)),
             cams_stale_after_hours=int(g("EARTHSIM_CAMS_STALE_AFTER_HOURS", ing.get("cams_stale_after_hours", 24), int)),
+            ndbc_stale_after_minutes=int(g("EARTHSIM_NDBC_STALE_AFTER_MINUTES", ing.get("ndbc_stale_after_minutes", 240), int)),
             satellite_poll_seconds=int(g("EARTHSIM_SATELLITE_POLL_SECONDS", ing.get("satellite_poll_seconds", 300), int)),
             satellite_stale_after_minutes=int(g("EARTHSIM_SATELLITE_STALE_AFTER_MINUTES", ing.get("satellite_stale_after_minutes", 45), int)),
             satellite_initial_frames=int(g("EARTHSIM_SATELLITE_INITIAL_FRAMES", ing.get("satellite_initial_frames", 6), int)),

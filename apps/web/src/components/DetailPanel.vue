@@ -23,6 +23,26 @@ const station = computed(() => {
   })).sort((a, b) => a.d - b.d)[0]
   return near && near.d < 2 ? near.st : null
 })
+const buoy = computed(() => store.focusedBuoy.value)
+const buoyRows = computed(() => {
+  const v = buoy.value?.values || {}
+  return ([
+    ['浪高', v.wave_height_m, 'm'],
+    ['主导波周期', v.dominant_wave_period_s, 's'],
+    ['平均波向', v.mean_wave_direction_deg, '°'],
+    ['风速', v.wind_speed_ms, 'm/s'],
+    ['阵风', v.gust_ms, 'm/s'],
+    ['气压', v.pressure_hpa, 'hPa'],
+    ['水温', v.water_temp_c, '°C'],
+    ['气温', v.air_temp_c, '°C'],
+  ] as Array<[string, number | null, string]>).filter(([, val]) => val !== null && val !== undefined)
+})
+const buoyAge = computed(() => {
+  if (!buoy.value) return ''
+  const minutes = Math.max(0, Math.round((Date.now() - new Date(buoy.value.observed_at).getTime()) / 60000))
+  return minutes < 60 ? `${minutes} 分钟前` : `${Math.round(minutes / 60)} 小时前`
+})
+
 const event = computed(() => {
   const f = store.state.focusedEvent
   if (!f) return null
@@ -125,6 +145,17 @@ const valFmt = (v: number | null) => v === null ? '—' : (Math.abs(v) >= 100 ? 
       <div class="fc-list">
         <div v-for="(p, i) in forecastPoints" :key="i"><span>{{ timeLabel(p.time) }}</span><b>{{ valFmt(p.value) }} {{ p.unit }}</b></div>
       </div>
+    </div>
+
+    <div class="block" v-if="buoy">
+      <div class="eyebrow">NOAA NDBC BUOY</div>
+      <h3>{{ buoy.station_id }}</h3>
+      <div class="kv"><span>观测时刻 (UTC)</span><b>{{ buoy.observed_at }}</b></div>
+      <div class="kv"><span>数据新鲜度</span><b class="ok">{{ buoyAge }}</b></div>
+      <div class="kv" v-for="[name, val, unit] in buoyRows" :key="name">
+        <span>{{ name }}</span><b>{{ fmt(val) }} {{ unit }}</b>
+      </div>
+      <div class="sub">来源：NOAA NDBC 实时浮标观测 · SI 单位 · 缺测项为 null</div>
     </div>
 
     <div class="block" v-if="event">

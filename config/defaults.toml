@@ -15,6 +15,7 @@ gefs_lead_max_hours = 6
 gfs_stale_after_hours = 13
 oisst_stale_after_hours = 480
 cams_stale_after_hours = 24
+ndbc_stale_after_minutes = 240
 satellite_poll_seconds = 300
 satellite_stale_after_minutes = 45
 satellite_initial_frames = 6

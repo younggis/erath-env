@@ -41,6 +41,7 @@ const label: Record<string, string> = { forecast: '全球预报', fixture: '演�
     <label class="row"><span>风场拖尾光带</span><input type="checkbox" v-model="store.state.showTrails" /></label>
     <label class="row"><span>500 hPa 高空风丝带</span><input type="checkbox" v-model="store.state.showJet" /></label>
     <label class="row"><span>站点标记</span><input type="checkbox" v-model="store.state.showStations" /></label>
+    <label class="row"><span>海洋浮标 (NDBC)</span><input type="checkbox" v-model="store.state.showBuoys" /></label>
     <label class="row"><span>局部地形 (DEM)</span><input type="checkbox" v-model="store.state.showTerrain" /></label>
     <label class="row col" v-if="store.state.showTerrain"><span>地形夸张 <b>×{{ store.state.terrainExaggeration }}</b></span>
       <input type="range" min="0.5" max="8" step="0.5" v-model.number="store.state.terrainExaggeration" /></label>

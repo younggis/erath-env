@@ -10,6 +10,7 @@ import { FieldLayer } from './field'
 import { WindLayer } from './wind'
 import { GPUWindLayer } from './gpuWind'
 import { WindTrails } from './windTrails'
+import { BuoyLayer } from './buoys'
 import { StationLayer } from './stations'
 import { TerrainLayer } from './terrain'
 import { SkyLayer } from './sky'
@@ -55,6 +56,7 @@ export class EarthRenderer {
   private wind = new WindLayer()
   private gpuWind = new GPUWindLayer()
   private trails = new WindTrails()
+  private buoys = new BuoyLayer()
   private trailsWanted = true
   private windVisible = true
   private gpuWindEnabled = false
@@ -192,6 +194,7 @@ export class EarthRenderer {
     const sz = this.renderer.getSize(new THREE.Vector2())
     this.trails.attach(this.renderer, sz.x, sz.y)
     this.scene.add(this.trails.mesh)
+    this.scene.add(this.buoys.points)
     this.scene.add(this.jet.lines)
     this.scene.add(this.stations.points)
     this.scene.add(this.aurora.mesh)
@@ -401,6 +404,8 @@ export class EarthRenderer {
   }
 
   setWindTrailsVisible(v: boolean): void { this.trailsWanted = !!v; this.applyWindVisibility() }
+  setBuoys(points: import('./buoys').BuoyPoint[]): void { this.buoys.setBuoys(points) }
+  setBuoysVisible(v: boolean): void { this.buoys.setVisible(v) }
 
   setWind(data: WindData | null): void {
     this.wind.setWind(data)
@@ -697,7 +702,7 @@ export class EarthRenderer {
     this.pauseLoop()
     this.resizeObserver.disconnect()
     this.controls.dispose()
-    this.field.dispose(); this.wind.dispose(); this.gpuWind.dispose(); this.trails.dispose(); this.jet.dispose(); this.stations.dispose()
+    this.field.dispose(); this.wind.dispose(); this.gpuWind.dispose(); this.trails.dispose(); this.buoys.dispose(); this.jet.dispose(); this.stations.dispose()
     if (this.hiresMesh) {
       this.scene.remove(this.hiresMesh)
       this.hiresMesh.geometry.dispose()

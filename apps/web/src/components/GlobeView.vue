@@ -265,6 +265,18 @@ function onPointerUp(event: PointerEvent) {
     hud.value = `${hit.lat.toFixed(2)}°, ${hit.lon.toFixed(2)}°`
     store.state.focusedStationId = ''
     store.state.focusedEvent = null
+    // Pick the nearest NDBC buoy when the overlay is enabled.
+    store.state.focusedBuoyId = ''
+    if (store.state.showBuoys && store.state.buoys.length) {
+      const near = store.state.buoys.map(b => ({
+        b, d: Math.hypot(b.lon - hit.lon,
+          (b.lat - hit.lat) / Math.max(0.2, Math.cos(hit.lat * Math.PI / 180))),
+      })).sort((a, z) => a.d - z.d)[0]
+      if (near && near.d < 2.5) {
+        store.state.focusedBuoyId = near.b.station_id
+        hud.value = `浮标 ${near.b.station_id} · ${near.b.lat.toFixed(2)}°, ${near.b.lon.toFixed(2)}°`
+      }
+    }
     store.queryPoint(hit.lon, hit.lat)
   }
 }
@@ -322,6 +334,7 @@ onMounted(async () => {
   renderer.setWindVisible(store.state.showParticles)
   renderer.setGPUWindEnabled(store.state.useGpuWind)
   renderer.setWindTrailsVisible(store.state.showTrails)
+  renderer.setBuoysVisible(store.state.showBuoys)
   renderer.setStationsVisible(store.state.showStations)
   renderer.setFieldOpacity(store.state.layerOpacity)
   renderer.setFieldVisible(store.state.showField)
@@ -335,6 +348,11 @@ onMounted(async () => {
   renderer.setTilesEnabled(store.state.hdTiles)
   renderer.setSimulationTime(store.state.simTime ? new Date(store.state.simTime) : null)
   store.state.sunInfo = { ...renderer.subSolarPoint }
+  // NDBC buoy overlay is independent of the selected forecast layer.
+  store.loadBuoys().then(() => {
+    renderer?.setBuoys(store.state.buoys)
+    renderer?.setBuoysVisible(store.state.showBuoys)
+  })
   host.value.addEventListener('pointerdown', onPointerDown)
   host.value.addEventListener('pointerup', onPointerUp)
 
@@ -404,6 +422,8 @@ watch(() => store.state.showVolume, v => renderer?.setVolumeVisible(v))
 watch(() => store.state.volumeDensity, v => renderer?.setVolumeDensity(v))
 watch(() => store.state.showField, v => renderer?.setFieldVisible(v))
 watch(() => store.state.showStations, v => renderer?.setStationsVisible(v))
+watch(() => store.state.showBuoys, v => renderer?.setBuoysVisible(v))
+watch(() => store.state.buoys, v => renderer?.setBuoys(v))
 watch(() => store.state.particleCount, v => renderer?.setWindCount(v))
 watch(() => store.state.speed, v => renderer?.setWindSpeed(v))
 watch(() => store.state.layerOpacity, v => {

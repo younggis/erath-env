@@ -114,6 +114,26 @@ def data_status() -> dict:
     return assess()
 
 
+@router.get("/obs/buoys")
+def buoys(max_age_minutes: int | None = None, bbox: str | None = None) -> dict:
+    """Latest NOAA NDBC buoy observations (SI units, UTC ISO-8601 timestamps)."""
+    rows = repo.query_stations(None, None, source_id="noaa_ndbc")
+    if bbox:
+        try:
+            w, s, e, n = (float(x) for x in bbox.split(","))
+        except (ValueError, TypeError):
+            raise ApiError("BAD_BBOX", "bbox 应为 west,south,east,north", 422)
+        rows = [r for r in rows if w <= r["lon"] <= e and s <= r["lat"] <= n]
+    age = max_age_minutes if max_age_minutes is not None else get_settings().ndbc_stale_after_minutes
+    now = datetime.now(timezone.utc)
+    rows = [r for r in rows
+            if abs((parse_iso(r["observed_at"]) - now).total_seconds()) <= max(1, age) * 60]
+    return {
+        "buoys": rows, "count": len(rows), "source_id": "noaa_ndbc",
+        "generated_at": to_iso(now),
+    }
+
+
 @router.post("/sources/{source_id}/refresh", status_code=202)
 def refresh_source(source_id: str) -> dict:
     """Start a non-blocking background refresh (in-flight requests are reused)."""
