@@ -353,6 +353,15 @@ onMounted(async () => {
     renderer?.setBuoys(store.state.buoys)
     renderer?.setBuoysVisible(store.state.showBuoys)
   })
+  renderer.setLightningVisible(store.state.showLightning)
+  if (store.state.showLightning) {
+    store.loadLightning().then(() => renderer?.setLightning(store.state.lightning))
+    const lt = window.setInterval(async () => {
+      await store.loadLightning()
+      renderer?.setLightning(store.state.lightning)
+    }, 5000)
+    ;(host.value as any).__lightningTimer = lt
+  }
   host.value.addEventListener('pointerdown', onPointerDown)
   host.value.addEventListener('pointerup', onPointerUp)
 
@@ -475,12 +484,27 @@ watch(() => store.state.showFires, v => renderer?.setFiresVisible(v))
 watch(() => store.state.showTracks, v => renderer?.setTracksVisible(v))
 watch(() => store.state.showAurora, v => renderer?.setAuroraVisible(v))
 watch(() => store.state.showSolarWind, v => renderer?.setSolarWindVisible(v))
+watch(() => store.state.showLightning, (v) => {
+  renderer?.setLightningVisible(v)
+  const hostEl = host.value as any
+  if (!hostEl) return
+  if (hostEl.__lightningTimer) { clearInterval(hostEl.__lightningTimer); hostEl.__lightningTimer = 0 }
+  if (v) {
+    store.loadLightning().then(() => renderer?.setLightning(store.state.lightning))
+    hostEl.__lightningTimer = window.setInterval(async () => {
+      await store.loadLightning()
+      renderer?.setLightning(store.state.lightning)
+    }, 5000)
+  }
+})
 
 onBeforeUnmount(() => {
   const t = (host.value as any)?.__statsTimer
   if (t) clearInterval(t)
   const rt = (host.value as any)?.__realtimeTimer
   if (rt) clearInterval(rt)
+  const lt = (host.value as any)?.__lightningTimer
+  if (lt) clearInterval(lt)
   host.value?.removeEventListener('pointerdown', onPointerDown)
   host.value?.removeEventListener('pointerup', onPointerUp)
   renderer?.dispose()

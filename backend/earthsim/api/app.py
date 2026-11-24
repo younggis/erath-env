@@ -25,7 +25,16 @@ async def lifespan(app: FastAPI):
         auto_refresh_if_needed()
     except Exception:
         pass  # never block startup on ingest
+    lightning_poller = None
+    try:
+        from ..ingest import lightning
+        if lightning.start_poller():
+            lightning_poller = lightning
+    except Exception:
+        pass  # lightning is optional; never block API startup
     yield
+    if lightning_poller:
+        lightning_poller.stop_poller()
 
 
 app = FastAPI(title="Earth Environment Simulator", version="1.0.0", lifespan=lifespan)

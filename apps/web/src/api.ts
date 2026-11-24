@@ -79,6 +79,15 @@ export interface Buoy {
   values: Record<string, number | null>
 }
 
+export interface LightningStrike {
+  id: string
+  lon: number
+  lat: number
+  observed_at: string
+  source_id: string
+  magnitude?: number | null
+}
+
 export const api = {
   health: () => get<{ status: string; mode: string; version: string }>('/api/v1/health'),
   sources: () => get<any>('/api/v1/sources'),
@@ -106,6 +115,8 @@ export const api = {
       // the station layer must only show METAR reports.
       source_id: 'awc_metar',
     })}`),
+  lightning: () => get<{ strikes: LightningStrike[]; count: number; note: string }>(
+    '/api/v1/realtime/lightning'),
   buoys: () => get<{ buoys: Buoy[]; count: number; source_id: string; generated_at: string }>(
     '/api/v1/obs/buoys'),
   refresh: (sourceId: string) => post<{ task_id: string; source: string; state: string; reused?: boolean }>(

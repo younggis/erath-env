@@ -11,6 +11,7 @@ import { WindLayer } from './wind'
 import { GPUWindLayer } from './gpuWind'
 import { WindTrails } from './windTrails'
 import { BuoyLayer } from './buoys'
+import { LightningLayer } from './lightning'
 import { StationLayer } from './stations'
 import { TerrainLayer } from './terrain'
 import { SkyLayer } from './sky'
@@ -57,6 +58,7 @@ export class EarthRenderer {
   private gpuWind = new GPUWindLayer()
   private trails = new WindTrails()
   private buoys = new BuoyLayer()
+  private lightning = new LightningLayer()
   private trailsWanted = true
   private windVisible = true
   private gpuWindEnabled = false
@@ -195,6 +197,7 @@ export class EarthRenderer {
     this.trails.attach(this.renderer, sz.x, sz.y)
     this.scene.add(this.trails.mesh)
     this.scene.add(this.buoys.points)
+    this.scene.add(this.lightning.points)
     this.scene.add(this.jet.lines)
     this.scene.add(this.stations.points)
     this.scene.add(this.aurora.mesh)
@@ -406,6 +409,8 @@ export class EarthRenderer {
   setWindTrailsVisible(v: boolean): void { this.trailsWanted = !!v; this.applyWindVisibility() }
   setBuoys(points: import('./buoys').BuoyPoint[]): void { this.buoys.setBuoys(points) }
   setBuoysVisible(v: boolean): void { this.buoys.setVisible(v) }
+  setLightning(strikes: import('./lightning').LightningStrike[]): void { this.lightning.setStrikes(strikes) }
+  setLightningVisible(v: boolean): void { this.lightning.setVisible(v) }
 
   setWind(data: WindData | null): void {
     this.wind.setWind(data)
@@ -658,6 +663,7 @@ export class EarthRenderer {
     this.solarWind.setSunDirection(sunDir)
     this.solarWind.update(this.elapsed)
     this.volume.update(this.camera.position, sunDir, this.elapsed)
+    this.lightning.update()
     // High-resolution satellite tiles for the current view centre. Update at
     // most a few times per second; TileLayer dedups identical tile keys.
     this.tileAccum = (this.tileAccum || 0) + dt
@@ -702,7 +708,7 @@ export class EarthRenderer {
     this.pauseLoop()
     this.resizeObserver.disconnect()
     this.controls.dispose()
-    this.field.dispose(); this.wind.dispose(); this.gpuWind.dispose(); this.trails.dispose(); this.buoys.dispose(); this.jet.dispose(); this.stations.dispose()
+    this.field.dispose(); this.wind.dispose(); this.gpuWind.dispose(); this.trails.dispose(); this.buoys.dispose(); this.lightning.dispose(); this.jet.dispose(); this.stations.dispose()
     if (this.hiresMesh) {
       this.scene.remove(this.hiresMesh)
       this.hiresMesh.geometry.dispose()

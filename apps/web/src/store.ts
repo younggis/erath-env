@@ -1,6 +1,6 @@
 /** Central reactive store. Vue state stays separate from the Three.js loop. */
 import { reactive, computed } from 'vue'
-import { api, type Layer, type Frame, type Sample, type Station, type Buoy } from './api'
+import { api, type Layer, type Frame, type Sample, type Station, type Buoy, type LightningStrike } from './api'
 import { sortLayers } from './layerOrder'
 import type { GridInfo } from './earth'
 import type { VolumeData } from './render/types'
@@ -59,6 +59,8 @@ const state = reactive({
   buoys: [] as Buoy[],
   showBuoys: false,
   focusedBuoyId: '',
+  lightning: [] as LightningStrike[],
+  showLightning: false,
   /** Set by the location bar; GlobeView watches and focuses the globe. */
   focusRequest: null as { lon: number; lat: number; distance?: number } | null,
   savedRegions: [] as Array<{ name: string; lon: number; lat: number; distance?: number }>,
@@ -112,6 +114,15 @@ export const store = {
   activeLayer: computed(() => state.layers.find(l => l.layer_id === state.activeLayerId) || null),
   currentTime: computed(() => state.frames[state.frameIndex]?.valid_time || ''),
   focusedBuoy: computed(() => state.buoys.find(b => b.station_id === state.focusedBuoyId) || null),
+
+  async loadLightning() {
+    try {
+      const res = await api.lightning()
+      state.lightning = res.strikes
+    } catch {
+      state.lightning = []
+    }
+  },
 
   async loadBuoys() {
     try {

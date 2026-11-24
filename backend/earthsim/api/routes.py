@@ -406,6 +406,13 @@ def realtime_tracks() -> dict:
     return read_realtime("gdacs_tracks.json") or {"tracks": [], "received_at": None}
 
 
+@router.get("/realtime/lightning")
+def realtime_lightning(limit: int = 5000) -> dict:
+    """Blitzortung lightning strikes within the current time window."""
+    from ..ingest import lightning
+    return lightning.status(limit)
+
+
 @router.get("/realtime/fires")
 def realtime_fires(limit: int = 6000) -> dict:
     """NASA FIRMS active fire hotspots (EPSG:4326, FRP in MW)."""

@@ -74,6 +74,10 @@ class Settings:
     oisst_stale_after_hours: int = 480  # AVHRR-only analysis lags ~2 weeks
     cams_stale_after_hours: int = 24
     firms_min_frp_mw: float = 10.0
+    lightning_window_minutes: int = 20
+    lightning_max_strikes: int = 5000
+    lightning_poll_seconds: int = 30
+    lightning_timeout_seconds: float = 8.0
     ndbc_stale_after_minutes: int = 240
     satellite_poll_seconds: int = 300
     satellite_stale_after_minutes: int = 45
@@ -132,6 +136,10 @@ class Settings:
             oisst_stale_after_hours=int(g("EARTHSIM_OISST_STALE_AFTER_HOURS", ing.get("oisst_stale_after_hours", 480), int)),
             cams_stale_after_hours=int(g("EARTHSIM_CAMS_STALE_AFTER_HOURS", ing.get("cams_stale_after_hours", 24), int)),
             firms_min_frp_mw=float(g("EARTHSIM_FIRMS_MIN_FRP_MW", ing.get("firms_min_frp_mw", 10.0), float)),
+            lightning_window_minutes=int(g("EARTHSIM_LIGHTNING_WINDOW_MINUTES", ing.get("lightning_window_minutes", 20), int)),
+            lightning_max_strikes=int(g("EARTHSIM_LIGHTNING_MAX_STRIKES", ing.get("lightning_max_strikes", 5000), int)),
+            lightning_poll_seconds=int(g("EARTHSIM_LIGHTNING_POLL_SECONDS", ing.get("lightning_poll_seconds", 30), int)),
+            lightning_timeout_seconds=float(g("EARTHSIM_LIGHTNING_TIMEOUT_SECONDS", ing.get("lightning_timeout_seconds", 8.0), float)),
             ndbc_stale_after_minutes=int(g("EARTHSIM_NDBC_STALE_AFTER_MINUTES", ing.get("ndbc_stale_after_minutes", 240), int)),
             satellite_poll_seconds=int(g("EARTHSIM_SATELLITE_POLL_SECONDS", ing.get("satellite_poll_seconds", 300), int)),
             satellite_stale_after_minutes=int(g("EARTHSIM_SATELLITE_STALE_AFTER_MINUTES", ing.get("satellite_stale_after_minutes", 45), int)),
