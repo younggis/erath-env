@@ -122,39 +122,9 @@ def refresh_quakes() -> dict:
 
 # --------------------------------------------------------------------------- flights
 def refresh_flights() -> dict:
-    src = "opensky"
-    try:
-        data = _get_json(OPENSKY_URL, timeout=90)
-        received = _now_iso()
-        rows = []
-        for s in data.get("states") or []:
-            if len(s) < 8 or s[5] is None or s[6] is None or s[8]:
-                continue  # skip missing position / on-ground
-            contact = s[4] or s[3] or data.get("time")
-            observed = to_iso(datetime.fromtimestamp(float(contact), tz=timezone.utc)) if contact else received
-            rows.append({
-                "station_id": str(s[0]), "source_id": src, "observed_at": observed, "received_at": received,
-                "lon": float(s[5]), "lat": float(s[6]),
-                "values": {
-                    "callsign": (s[1] or "").strip(), "country": s[2],
-                    "altitude_m": s[7], "velocity_ms": s[9], "track_deg": s[10], "vertical_rate_ms": s[11],
-                },
-                "raw_ref": "",
-            })
-        # Cap the store for the render budget (prefer highest altitude / airborne).
-        if len(rows) > 6000:
-            rows.sort(key=lambda r: (r["values"].get("altitude_m") or 0), reverse=True)
-            rows = rows[:6000]
-        if not rows:
-            raise IngestError("NO_EVENTS", "OpenSky 未返回航班")
-        repo.insert_observations(rows)
-        _cleanup([src], hours=2)
-        mark_success(src, {"events": len(rows)})
-        return {"ok": True, "events": len(rows)}
-    except Exception as e:  # noqa: BLE001
-        err = e if isinstance(e, IngestError) else IngestError("FETCH_FAILED", str(e))
-        mark_failure(src, err)
-        return {"ok": False, "error": err.code}
+    # Dedicated adapter keeps SI altitude/track/vertical-rate with 429 backoff.
+    from . import opensky
+    return opensky.refresh()
 
 
 # --------------------------------------------------------------------------- tropical storms

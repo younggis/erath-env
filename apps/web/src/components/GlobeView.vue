@@ -497,6 +497,7 @@ function updateRealtime() {
   const e = store.state.realtimeEvents
   renderer?.setRealtimeEvents('quake', e.usgs_quake || [])
   renderer?.setRealtimeEvents('flight', e.opensky || [])
+  renderer?.setFlightTrails(e.opensky || [])
   renderer?.setRealtimeEvents('storm', e.nhc_storm || [])
   renderer?.setRealtimeEvents('cme', e.nasa_cme || [])
   const hazards = [...(e.gdacs || []), ...(e.eonet || [])]
@@ -509,6 +510,7 @@ function updateRealtime() {
   renderer?.setSolarWindVisible(store.state.showSolarWind)
   renderer?.setQuakesVisible(store.state.showQuakes)
   renderer?.setFlightsVisible(store.state.showFlights)
+  renderer?.setFlightTrailsVisible(store.state.showFlights)
   renderer?.setStormsVisible(store.state.showStorms)
   renderer?.setCmeVisible(store.state.showCme)
   renderer?.setDisastersVisible(store.state.showDisasters)
@@ -517,7 +519,10 @@ function updateRealtime() {
 }
 watch(() => store.state.realtimeUpdatedAt, updateRealtime)
 watch(() => store.state.showQuakes, v => renderer?.setQuakesVisible(v))
-watch(() => store.state.showFlights, v => renderer?.setFlightsVisible(v))
+watch(() => store.state.showFlights, v => {
+  renderer?.setFlightsVisible(v)
+  renderer?.setFlightTrailsVisible(v)
+})
 watch(() => store.state.showStorms, v => renderer?.setStormsVisible(v))
 watch(() => store.state.showCme, v => renderer?.setCmeVisible(v))
 watch(() => store.state.showDisasters, v => renderer?.setDisastersVisible(v))

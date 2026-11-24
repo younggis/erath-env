@@ -128,9 +128,15 @@ export class EventLayer {
     for (let ei = 0; ei < events.length; ei += step) {
       const e = events[ei]
       if (e.lon == null || e.lat == null) continue
-      const p = ll2xyz(e.lon, e.lat, R)
-      pos.push(p.x, p.y, p.z)
       const v = e.values || {}
+      // OpenSky barometric altitude lifts flights into a real 3D airspace shell.
+      const rawAlt = v.baro_altitude_m ?? v.altitude_m
+      const altM = Number(rawAlt) || 0
+      const radius = this.mode === 'flight'
+        ? R * (1 + Math.min(20000, Math.max(0, altM)) / 6371000)
+        : R
+      const p = ll2xyz(e.lon, e.lat, radius)
+      pos.push(p.x, p.y, p.z)
       let r = 0.4, g = 0.9, b = 1.0, sz = 12
       if (this.mode === 'quake') {
         const mag = Math.max(0, Number(v.mag) || 0)
@@ -138,8 +144,7 @@ export class EventLayer {
         r = 0.2 + t * 0.8; g = 0.85 - t * 0.35; b = 1.0 - t * 0.8
         sz = 10 + t * 38
       } else if (this.mode === 'flight') {
-        const alt = Number(v.altitude_m) || 0
-        const t = Math.min(1, alt / 12000)
+        const t = Math.min(1, altM / 12000)
         r = 0.35 + t * 0.6; g = 0.75 + t * 0.25; b = 1.0
         sz = 6
       } else if (this.mode === 'storm') {
