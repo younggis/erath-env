@@ -1,0 +1,23 @@
+[server]
+host = "127.0.0.1"
+port = 8080
+
+[storage]
+# 相对路径以仓库根目录为基准；容器内为 /data
+root = "/data"
+
+[ingest]
+gfs_poll_seconds = 900
+gfs_lead_max_hours = 36
+volume_lead_max_hours = 3
+gfs_stale_after_hours = 13
+satellite_poll_seconds = 300
+satellite_stale_after_minutes = 45
+satellite_initial_frames = 6
+metar_poll_seconds = 300
+metar_stale_after_minutes = 120
+keep_gfs_cycles = 2
+derived_cache_budget_gib = 12
+min_free_disk_gib = 8
+http_timeout_seconds = 30
+max_download_bytes = 268435456

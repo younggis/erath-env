@@ -1,0 +1,48 @@
+[project]
+name = "earthsim"
+version = "1.0.0"
+description = "Local Earth environment simulator: live global weather and 3D globe"
+requires-python = ">=3.11"
+dependencies = [
+  "fastapi>=0.110,<1",
+  "uvicorn[standard]>=0.27,<1",
+  "pydantic>=2.6,<3",
+  "httpx>=0.27,<1",
+  "numpy>=1.26,<3",
+  "tomli>=2.0; python_version<'3.11'",
+]
+
+[project.optional-dependencies]
+data = [
+  "xarray>=2024.3",
+  "cfgrib>=0.9.10",
+  "eccodes>=2.37",
+  "satpy>=0.53",
+  "pyresample>=1.31",
+  "pyproj>=3.6",
+  "netCDF4>=1.7",
+  "Pillow>=10.0",
+]
+test = [
+  "pytest>=8.0",
+  "pytest-cov>=5.0",
+]
+wrf = [
+  "netCDF4>=1.7",
+  "xarray>=2024.3",
+]
+
+[project.scripts]
+earthsim = "earthsim.cli:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["backend"]
+
+[tool.pytest.ini_options]
+testpaths = ["backend/tests"]
+pythonpath = ["backend"]
+addopts = "-q"

@@ -1,0 +1,42 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.app
+      args:
+        EARTHSIM_EXTRAS: ${EARTHSIM_EXTRAS:-}
+    image: earthsim-app:1.0
+    ports:
+      - "127.0.0.1:${EARTHSIM_HTTP_PORT:-8080}:8080"
+    environment: &common_env
+      EARTHSIM_DATA_MODE: ${EARTHSIM_DATA_MODE:-fixture}
+      EARTHSIM_HTTP_PORT: 8080
+      EARTHSIM_UI_TIMEZONE: ${EARTHSIM_UI_TIMEZONE:-local}
+      EARTHSIM_STORAGE_ROOT: /data
+      EARTHSIM_GFS_POLL_SECONDS: ${EARTHSIM_GFS_POLL_SECONDS:-900}
+      EARTHSIM_GFS_MAX_LEAD_HOURS: ${EARTHSIM_GFS_MAX_LEAD_HOURS:-36}
+      EARTHSIM_SATELLITE_POLL_SECONDS: ${EARTHSIM_SATELLITE_POLL_SECONDS:-300}
+      EARTHSIM_METAR_POLL_SECONDS: ${EARTHSIM_METAR_POLL_SECONDS:-300}
+      EARTHSIM_DERIVED_CACHE_GIB: ${EARTHSIM_DERIVED_CACHE_GIB:-12}
+      EARTHSIM_MIN_FREE_DISK_GIB: ${EARTHSIM_MIN_FREE_DISK_GIB:-8}
+    volumes:
+      - data:/data
+    depends_on:
+      - ingest-worker
+    restart: unless-stopped
+
+  ingest-worker:
+    image: earthsim-app:1.0
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.app
+      args:
+        EARTHSIM_EXTRAS: ${EARTHSIM_EXTRAS:-}
+    environment: *common_env
+    volumes:
+      - data:/data
+    command: ["python", "-m", "earthsim.worker"]
+    restart: unless-stopped
+
+volumes:
+  data:

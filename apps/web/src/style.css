@@ -1,0 +1,19 @@
+:root {
+  --bg: #060a12;
+  --line: rgba(130, 175, 210, .14);
+  --text: #dce9f5;
+  --muted: #7d93a8;
+  --accent: #5ec8ff;
+  --accent2: #7dfbd0;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body, #app { margin: 0; height: 100%; background: var(--bg); }
+body {
+  font-family: "Inter", "Segoe UI", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+button, input, select { font-family: inherit; }
+::-webkit-scrollbar { width: 7px; height: 7px; }
+::-webkit-scrollbar-thumb { background: rgba(130,175,210,.2); border-radius: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
