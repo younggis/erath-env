@@ -277,6 +277,20 @@ function onPointerUp(event: PointerEvent) {
         hud.value = `浮标 ${near.b.station_id} · ${near.b.lat.toFixed(2)}°, ${near.b.lon.toFixed(2)}°`
       }
     }
+    // Nearest OpenAQ station when the air-quality overlay is enabled.
+    store.state.focusedAirStationId = ''
+    if (store.state.showAirQuality && store.state.airQuality.length) {
+      const nearAQ = store.state.airQuality.map(s => ({
+        s, d: Math.hypot(s.lon - hit.lon,
+          (s.lat - hit.lat) / Math.max(0.2, Math.cos(hit.lat * Math.PI / 180))),
+      })).sort((a, z) => a.d - z.d)[0]
+      if (nearAQ && nearAQ.d < 1.5) {
+        store.state.focusedAirStationId = nearAQ.s.station_id
+        if (!store.state.focusedBuoyId) {
+          hud.value = `空气站 ${nearAQ.s.station_id} · ${nearAQ.s.lat.toFixed(2)}°, ${nearAQ.s.lon.toFixed(2)}°`
+        }
+      }
+    }
     store.queryPoint(hit.lon, hit.lat)
   }
 }
@@ -354,6 +368,10 @@ onMounted(async () => {
     renderer?.setBuoysVisible(store.state.showBuoys)
   })
   renderer.setLightningVisible(store.state.showLightning)
+  renderer.setAirQualityVisible(store.state.showAirQuality)
+  if (store.state.showAirQuality) {
+    store.loadAirQuality().then(() => renderer?.setAirQuality(store.state.airQuality))
+  }
   if (store.state.showLightning) {
     store.loadLightning().then(() => renderer?.setLightning(store.state.lightning))
     const lt = window.setInterval(async () => {
@@ -483,6 +501,11 @@ watch(() => store.state.showDisasters, v => renderer?.setDisastersVisible(v))
 watch(() => store.state.showFires, v => renderer?.setFiresVisible(v))
 watch(() => store.state.showTracks, v => renderer?.setTracksVisible(v))
 watch(() => store.state.showAurora, v => renderer?.setAuroraVisible(v))
+watch(() => store.state.showAirQuality, (v) => {
+  renderer?.setAirQualityVisible(v)
+  if (v) store.loadAirQuality().then(() => renderer?.setAirQuality(store.state.airQuality))
+})
+watch(() => store.state.airQuality, v => renderer?.setAirQuality(v))
 watch(() => store.state.showSolarWind, v => renderer?.setSolarWindVisible(v))
 watch(() => store.state.showLightning, (v) => {
   renderer?.setLightningVisible(v)

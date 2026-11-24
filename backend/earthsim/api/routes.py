@@ -114,6 +114,18 @@ def data_status() -> dict:
     return assess()
 
 
+@router.get("/obs/air-quality")
+def air_quality(limit: int = 3000) -> dict:
+    """OpenAQ v3 ground air-quality stations (µg/m³ and PM2.5 AQI)."""
+    from ..ingest import openaq
+    status = openaq.status()
+    if not status["enabled"]:
+        return {**status, "count": 0, "stations": []}
+    rows = repo.query_stations(None, None, source_id="openaq")
+    rows = [r for r in rows if -180 <= r["lon"] <= 180 and -90 <= r["lat"] <= 90]
+    return {**status, "count": min(len(rows), limit), "stations": rows[:limit]}
+
+
 @router.get("/obs/buoys")
 def buoys(max_age_minutes: int | None = None, bbox: str | None = None) -> dict:
     """Latest NOAA NDBC buoy observations (SI units, UTC ISO-8601 timestamps)."""

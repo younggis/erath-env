@@ -12,6 +12,7 @@ import { GPUWindLayer } from './gpuWind'
 import { WindTrails } from './windTrails'
 import { BuoyLayer } from './buoys'
 import { LightningLayer } from './lightning'
+import { AirQualityLayer } from './airquality'
 import { StationLayer } from './stations'
 import { TerrainLayer } from './terrain'
 import { SkyLayer } from './sky'
@@ -59,6 +60,7 @@ export class EarthRenderer {
   private trails = new WindTrails()
   private buoys = new BuoyLayer()
   private lightning = new LightningLayer()
+  private airQuality = new AirQualityLayer()
   private trailsWanted = true
   private windVisible = true
   private gpuWindEnabled = false
@@ -198,6 +200,7 @@ export class EarthRenderer {
     this.scene.add(this.trails.mesh)
     this.scene.add(this.buoys.points)
     this.scene.add(this.lightning.points)
+    this.scene.add(this.airQuality.points)
     this.scene.add(this.jet.lines)
     this.scene.add(this.stations.points)
     this.scene.add(this.aurora.mesh)
@@ -411,6 +414,8 @@ export class EarthRenderer {
   setBuoysVisible(v: boolean): void { this.buoys.setVisible(v) }
   setLightning(strikes: import('./lightning').LightningStrike[]): void { this.lightning.setStrikes(strikes) }
   setLightningVisible(v: boolean): void { this.lightning.setVisible(v) }
+  setAirQuality(stations: import('./airquality').AirStation[]): void { this.airQuality.setStations(stations) }
+  setAirQualityVisible(v: boolean): void { this.airQuality.setVisible(v) }
 
   setWind(data: WindData | null): void {
     this.wind.setWind(data)
@@ -708,7 +713,7 @@ export class EarthRenderer {
     this.pauseLoop()
     this.resizeObserver.disconnect()
     this.controls.dispose()
-    this.field.dispose(); this.wind.dispose(); this.gpuWind.dispose(); this.trails.dispose(); this.buoys.dispose(); this.lightning.dispose(); this.jet.dispose(); this.stations.dispose()
+    this.field.dispose(); this.wind.dispose(); this.gpuWind.dispose(); this.trails.dispose(); this.buoys.dispose(); this.lightning.dispose(); this.airQuality.dispose(); this.jet.dispose(); this.stations.dispose()
     if (this.hiresMesh) {
       this.scene.remove(this.hiresMesh)
       this.hiresMesh.geometry.dispose()

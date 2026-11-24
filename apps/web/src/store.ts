@@ -1,6 +1,6 @@
 /** Central reactive store. Vue state stays separate from the Three.js loop. */
 import { reactive, computed } from 'vue'
-import { api, type Layer, type Frame, type Sample, type Station, type Buoy, type LightningStrike } from './api'
+import { api, type Layer, type Frame, type Sample, type Station, type Buoy, type LightningStrike, type AirStation } from './api'
 import { sortLayers } from './layerOrder'
 import type { GridInfo } from './earth'
 import type { VolumeData } from './render/types'
@@ -61,6 +61,9 @@ const state = reactive({
   focusedBuoyId: '',
   lightning: [] as LightningStrike[],
   showLightning: false,
+  airQuality: [] as AirStation[],
+  showAirQuality: false,
+  focusedAirStationId: '',
   /** Set by the location bar; GlobeView watches and focuses the globe. */
   focusRequest: null as { lon: number; lat: number; distance?: number } | null,
   savedRegions: [] as Array<{ name: string; lon: number; lat: number; distance?: number }>,
@@ -114,6 +117,17 @@ export const store = {
   activeLayer: computed(() => state.layers.find(l => l.layer_id === state.activeLayerId) || null),
   currentTime: computed(() => state.frames[state.frameIndex]?.valid_time || ''),
   focusedBuoy: computed(() => state.buoys.find(b => b.station_id === state.focusedBuoyId) || null),
+  focusedAirStation: computed(() => state.airQuality.find(
+    s => s.station_id === state.focusedAirStationId) || null),
+
+  async loadAirQuality() {
+    try {
+      const res = await api.airQuality()
+      state.airQuality = res.stations
+    } catch {
+      state.airQuality = []
+    }
+  },
 
   async loadLightning() {
     try {

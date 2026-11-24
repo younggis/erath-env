@@ -23,6 +23,7 @@ const station = computed(() => {
   })).sort((a, b) => a.d - b.d)[0]
   return near && near.d < 2 ? near.st : null
 })
+const airStation = computed(() => store.focusedAirStation.value)
 const buoy = computed(() => store.focusedBuoy.value)
 const buoyRows = computed(() => {
   const v = buoy.value?.values || {}
@@ -145,6 +146,17 @@ const valFmt = (v: number | null) => v === null ? '—' : (Math.abs(v) >= 100 ? 
       <div class="fc-list">
         <div v-for="(p, i) in forecastPoints" :key="i"><span>{{ timeLabel(p.time) }}</span><b>{{ valFmt(p.value) }} {{ p.unit }}</b></div>
       </div>
+    </div>
+
+    <div class="block" v-if="airStation">
+      <div class="eyebrow">OPENAQ AIR QUALITY</div>
+      <h3>{{ airStation.values?.station_name || airStation.station_id }}</h3>
+      <div class="kv"><span>PM2.5</span><b>{{ fmt(airStation.values?.pm25_ugm3) }} µg/m³</b></div>
+      <div class="kv"><span>PM2.5 AQI</span><b>{{ fmt(airStation.values?.aqi_pm25) }}</b></div>
+      <div class="kv"><span>NO₂</span><b>{{ fmt(airStation.values?.no2_ugm3) }} µg/m³</b></div>
+      <div class="kv"><span>O₃</span><b>{{ fmt(airStation.values?.o3_ugm3) }} µg/m³</b></div>
+      <div class="kv"><span>传感器时间 (UTC)</span><b>{{ airStation.values?.sensor_time || '—' }}</b></div>
+      <div class="sub">来源：OpenAQ v3 地面监测站 · 气体已归一化为 µg/m³</div>
     </div>
 
     <div class="block" v-if="buoy">

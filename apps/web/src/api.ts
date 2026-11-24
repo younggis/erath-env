@@ -79,6 +79,14 @@ export interface Buoy {
   values: Record<string, number | null>
 }
 
+export interface AirStation {
+  station_id: string
+  lon: number
+  lat: number
+  observed_at: string
+  values: Record<string, number | null | string>
+}
+
 export interface LightningStrike {
   id: string
   lon: number
@@ -115,6 +123,8 @@ export const api = {
       // the station layer must only show METAR reports.
       source_id: 'awc_metar',
     })}`),
+  airQuality: () => get<{ stations: AirStation[]; count: number; note: string }>(
+    '/api/v1/obs/air-quality'),
   lightning: () => get<{ strikes: LightningStrike[]; count: number; note: string }>(
     '/api/v1/realtime/lightning'),
   buoys: () => get<{ buoys: Buoy[]; count: number; source_id: string; generated_at: string }>(
