@@ -18,6 +18,7 @@ const toastLoading = ref(false)
 let toastTimer = 0
 let renderer: EarthRenderer | null = null
 let windFrames: Frame[] = []
+let windSourceId = 'wind10'
 let windFrameId = ''
 let downAt: { x: number; y: number } | null = null
 
@@ -33,10 +34,21 @@ async function loadBasemap() {
 }
 
 async function refreshWindFrames() {
-  try {
-    const res = await api.frames('wind10')
-    windFrames = res.frames
-  } catch { windFrames = [] }
+  const active = store.state.activeLayerId
+  const candidate = active.startsWith('wave_') ? 'wave_drift' : 'wind10'
+  for (const id of [candidate, 'wind10']) {
+    try {
+      const res = await api.frames(id)
+      if (res.frames.length) {
+        if (windSourceId !== id) windFrameId = ''
+        windSourceId = id
+        windFrames = res.frames
+        return
+      }
+    } catch { /* try the next source */ }
+  }
+  windSourceId = 'wind10'
+  windFrames = []
 }
 
 async function loadJet() {
@@ -153,6 +165,10 @@ async function updateLayers() {
   }
   renderer.setVolume(null)
   const cached = store.state.gridCache.get(frame.frame_id)
+  // Feed real significant wave height into the ocean shader when that layer is
+  // active; other layers restore the default calm-ocean appearance.
+  renderer?.setWaveField(frame.layer_id === 'wave_height' && cached
+    ? cached.values : null, cached?.grid.nx || 0, cached?.grid.ny || 0)
   if (cached) {
     // Render the FULL gridded field as a continuous colour band for every
     // scalar/vector layer — including wind. This is the actual high-density
@@ -234,10 +250,21 @@ function onPointerUp(event: PointerEvent) {
     hud.value = `站点 ${hit.station.id} · ${hit.station.lat.toFixed(2)}°, ${hit.station.lon.toFixed(2)}°`
     // Ask DetailPanel to show this exact station.
     store.state.focusedStationId = hit.station.id
+    store.state.focusedEvent = null
     store.queryPoint(hit.station.lon, hit.station.lat)
   } else {
+    const picked = renderer.pickEvent(event.clientX, event.clientY)
+    if (picked) {
+      const ev = picked.event
+      hud.value = `事件 ${ev.station_id} · ${ev.lat.toFixed(2)}°, ${ev.lon.toFixed(2)}°`
+      store.state.focusedStationId = ''
+      store.state.focusedEvent = { source: ev.source_id as any, id: ev.station_id }
+      store.queryPoint(ev.lon, ev.lat)
+      return
+    }
     hud.value = `${hit.lat.toFixed(2)}°, ${hit.lon.toFixed(2)}°`
     store.state.focusedStationId = ''
+    store.state.focusedEvent = null
     store.queryPoint(hit.lon, hit.lat)
   }
 }
@@ -293,6 +320,8 @@ onMounted(async () => {
   renderer.setWindCount(store.state.particleCount)
   renderer.setWindSpeed(store.state.speed)
   renderer.setWindVisible(store.state.showParticles)
+  renderer.setGPUWindEnabled(store.state.useGpuWind)
+  renderer.setWindTrailsVisible(store.state.showTrails)
   renderer.setStationsVisible(store.state.showStations)
   renderer.setFieldOpacity(store.state.layerOpacity)
   renderer.setFieldVisible(store.state.showField)
@@ -300,6 +329,7 @@ onMounted(async () => {
   renderer.setTerrainExaggeration(store.state.terrainExaggeration)
   renderer.setNightLights(store.state.nightLights)
   renderer.setCloudStrength(store.state.cloudStrength)
+  renderer.setCinematicGrade(store.state.cinematicGrade)
   renderer.setBloom(store.state.bloom)
   renderer.setBloomStrength(store.state.bloomStrength)
   renderer.setTilesEnabled(store.state.hdTiles)
@@ -367,6 +397,8 @@ watch(() => store.state.switchingLayer, (s) => {
 watch(() => store.state.stations.length, updateStations)
 watch(() => store.state.playing, v => renderer?.setPlaying(v, dt => store.advance(dt)))
 watch(() => store.state.showParticles, v => renderer?.setWindVisible(v))
+watch(() => store.state.useGpuWind, v => renderer?.setGPUWindEnabled(v))
+watch(() => store.state.showTrails, v => renderer?.setWindTrailsVisible(v))
 watch(() => store.state.showJet, v => renderer?.setJetVisible(v))
 watch(() => store.state.showVolume, v => renderer?.setVolumeVisible(v))
 watch(() => store.state.volumeDensity, v => renderer?.setVolumeDensity(v))
@@ -385,6 +417,7 @@ watch(() => store.state.focusRequest, r => {
 })
 watch(() => store.state.nightLights, v => renderer?.setNightLights(v))
 watch(() => store.state.cloudStrength, v => renderer?.setCloudStrength(v))
+watch(() => store.state.cinematicGrade, v => renderer?.setCinematicGrade(v))
 watch(() => store.state.bloom, v => renderer?.setBloom(v))
 watch(() => store.state.bloomStrength, v => renderer?.setBloomStrength(v))
 watch(() => store.state.simTime, v => renderer?.setSimulationTime(v ? new Date(v) : null))
@@ -396,6 +429,10 @@ function updateRealtime() {
   renderer?.setRealtimeEvents('flight', e.opensky || [])
   renderer?.setRealtimeEvents('storm', e.nhc_storm || [])
   renderer?.setRealtimeEvents('cme', e.nasa_cme || [])
+  const hazards = [...(e.gdacs || []), ...(e.eonet || [])]
+  renderer?.setRealtimeEvents('hazard', hazards)
+  renderer?.setRealtimeEvents('fire', e.nasa_firms || [])
+  renderer?.setTracks(store.state.tracks)
   renderer?.setAurora(store.state.aurora)
   renderer?.setSolarWind(store.state.solarWind)
   renderer?.setAuroraVisible(store.state.showAurora)
@@ -404,12 +441,18 @@ function updateRealtime() {
   renderer?.setFlightsVisible(store.state.showFlights)
   renderer?.setStormsVisible(store.state.showStorms)
   renderer?.setCmeVisible(store.state.showCme)
+  renderer?.setDisastersVisible(store.state.showDisasters)
+  renderer?.setFiresVisible(store.state.showFires)
+  renderer?.setTracksVisible(store.state.showTracks)
 }
 watch(() => store.state.realtimeUpdatedAt, updateRealtime)
 watch(() => store.state.showQuakes, v => renderer?.setQuakesVisible(v))
 watch(() => store.state.showFlights, v => renderer?.setFlightsVisible(v))
 watch(() => store.state.showStorms, v => renderer?.setStormsVisible(v))
 watch(() => store.state.showCme, v => renderer?.setCmeVisible(v))
+watch(() => store.state.showDisasters, v => renderer?.setDisastersVisible(v))
+watch(() => store.state.showFires, v => renderer?.setFiresVisible(v))
+watch(() => store.state.showTracks, v => renderer?.setTracksVisible(v))
 watch(() => store.state.showAurora, v => renderer?.setAuroraVisible(v))
 watch(() => store.state.showSolarWind, v => renderer?.setSolarWindVisible(v))
 

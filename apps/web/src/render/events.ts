@@ -62,7 +62,7 @@ void main(){
     float eye = exp(-r*r*90.0);
     a = spiral*exp(-r*r*3.2)*smoothstep(1.0,0.25,r) + eye;
     c = mix(c, vec3(1.0), eye*0.7);
-  } else {
+  } else if(uMode < 3.5){
     // CME: expanding plasma cloud with a bright leading edge.
     float phase = fract(vAge*0.05);
     float front = 0.2 + phase*0.78;
@@ -70,14 +70,32 @@ void main(){
     float core = exp(-r*r*16.0);
     a = disk*0.85 + core;
     c = mix(vColor, vec3(1.0,0.9,0.5), core*0.55);
+  } else if(uMode < 4.5){
+    // Multi-hazard alert: pulsing diamond beacon coloured by alert level.
+    float d = abs(p.x)+abs(p.y);
+    float ring = exp(-pow((d-0.62)*18.0,2.0));
+    float pulse = 0.6+0.4*sin(uTime*2.6+vAge*0.2);
+    float core = exp(-d*d*30.0);
+    a = (ring*pulse*0.9 + core) * smoothstep(1.0,0.7,r);
+    c = mix(vColor, vec3(1.0), core*0.5);
+  } else {
+    // FIRMS hotspot: flickering ember with two heat rings.
+    float flicker = 0.7+0.3*sin(uTime*6.0+vAge*0.7);
+    float core = exp(-r*r*36.0)*flicker;
+    float ring1 = exp(-pow((r-0.42)*16.0,2.0))*0.45;
+    float ring2 = exp(-pow((r-0.72)*20.0,2.0))*0.25;
+    a = core + ring1 + ring2;
+    c = mix(vColor, vec3(1.0,0.92,0.4), core*0.7);
   }
   a = clamp(a,0.0,1.0);
   if(a<0.02) discard;
   gl_FragColor = vec4(c*(0.28+a*0.45), a*0.13);
 }`
 
-export type EventMode = 'quake' | 'flight' | 'storm' | 'cme'
-const MODE_INDEX: Record<EventMode, number> = { quake: 0, flight: 1, storm: 2, cme: 3 }
+export type EventMode = 'quake' | 'flight' | 'storm' | 'cme' | 'hazard' | 'fire'
+const MODE_INDEX: Record<EventMode, number> = {
+  quake: 0, flight: 1, storm: 2, cme: 3, hazard: 4, fire: 5,
+}
 
 export class EventLayer {
   readonly points: THREE.Points
@@ -91,7 +109,8 @@ export class EventLayer {
       vertexShader: VERT, fragmentShader: FRAG,
       uniforms: {
         uTime: { value: 0 }, uMode: { value: MODE_INDEX[mode] },
-        uSizeScale: { value: mode === 'quake' ? 8 : mode === 'flight' ? 3 : mode === 'storm' ? 10 : 6 },
+        uSizeScale: { value: mode === 'quake' ? 8 : mode === 'flight' ? 3
+          : mode === 'storm' ? 10 : mode === 'hazard' ? 8 : mode === 'fire' ? 4 : 6 },
       },
       transparent: true, blending: THREE.AdditiveBlending, depthWrite: false,
     })
@@ -104,7 +123,8 @@ export class EventLayer {
     const pos: number[] = [], col: number[] = [], size: number[] = [], age: number[] = [], ang: number[] = []
     const now = Date.now() / 1000
     // Cap dense feeds (OpenSky delivers ~6000) to a render-friendly budget.
-    const step = this.mode === 'flight' ? Math.max(1, Math.ceil(events.length / 1500)) : 1
+    const step = this.mode === 'flight' ? Math.max(1, Math.ceil(events.length / 1500))
+      : this.mode === 'fire' ? Math.max(1, Math.ceil(events.length / 4000)) : 1
     for (let ei = 0; ei < events.length; ei += step) {
       const e = events[ei]
       if (e.lon == null || e.lat == null) continue
@@ -127,6 +147,21 @@ export class EventLayer {
         const t = Math.min(1, wind / 140)
         r = 0.3 + t * 0.7; g = 0.5 + t * 0.4; b = 1.0 - t * 0.6
         sz = 46 + t * 30
+      } else if (this.mode === 'hazard') {
+        const level = String(v.alert_level || '').toLowerCase()
+        const score = Math.min(1, Math.max(0, (Number(v.alert_score) || 0) / 3))
+        if (level === 'red') { r = 1.0; g = 0.35; b = 0.35 }
+        else if (level === 'orange') { r = 1.0; g = 0.65; b = 0.25 }
+        else if (level === 'green') { r = 0.4; g = 0.9; b = 0.6 }
+        else { r = 0.55; g = 0.7; b = 1.0 }
+        sz = 22 + score * 26
+      } else if (this.mode === 'fire') {
+        const frp = Number(v.frp_mw) || 0
+        const confidence = String(v.confidence || '').toLowerCase()
+        const t = Math.min(1, frp / 120)
+        r = 1.0; g = 0.45 + t * 0.45; b = 0.12 + t * 0.2
+        if (confidence === 'l') { g *= 0.75; b *= 0.75 }
+        sz = 9 + t * 14
       } else {
         const speed = Number(v.speed_kms) || 400
         const t = Math.min(1, Math.max(0, (speed - 250) / 1500))

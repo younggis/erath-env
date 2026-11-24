@@ -32,8 +32,30 @@ uniform float uROut;
 uniform float uDensity;
 uniform float uSteps;
 uniform float uOpacity;
+uniform float uTime;
 in vec3 vWorld;
 out vec4 fragColor;
+
+float hash12(vec2 p){
+  vec3 p3 = fract(vec3(p.xyx) * 0.1031);
+  p3 += dot(p3, p3.yzx + 33.33);
+  return fract((p3.x + p3.y) * p3.z);
+}
+// Henyey-Greenstein phase: clouds brighten toward the sun.
+float hg(float cosT, float g){
+  float g2 = g * g;
+  return (1.0 - g2) / max(0.001, pow(1.0 + g2 - 2.0 * g * cosT, 1.5));
+}
+float sampleDensity(vec3 p){
+  float r = length(p);
+  if(r < uRIn || r > uROut) return 0.0;
+  vec3 n = p / r;
+  float lat = asin(clamp(n.y, -1.0, 1.0));
+  float lon = atan(n.x, n.z);
+  vec2 uv = vec2(lon * 0.15915494 + 0.5, lat * 0.31830989 + 0.5);
+  float z = clamp((r - uRIn) / max(1e-4, uROut - uRIn), 0.0, 1.0);
+  return smoothstep(0.18, 0.55, texture(uVol, vec3(uv, z)).r);
+}
 
 // ray-sphere intersection; returns (tNear, tFar), or vec2(-1) if no hit.
 vec2 hitSphere(vec3 ro, vec3 rd, float R){
@@ -57,29 +79,34 @@ void main(){
   if(inner.x > 0.0) t1 = min(t1, inner.x);
   if(t1 <= t0) discard;
 
-  float dt = (t1 - t0) / uSteps;
+  vec3 sun = normalize(uSunDir);
+  // Adaptive step count: grazing rays through the shell need more samples.
+  float steps = clamp(uSteps * (0.65 + 0.35 * (t1 - t0) / max(0.01, uROut - uRIn)),
+                      16.0, uSteps);
+  float dt = (t1 - t0) / steps;
+  float jitter = hash12(gl_FragCoord.xy + floor(uTime * 24.0));
   vec4 acc = vec4(0.0);
   for(float i = 0.0; i < 96.0; i++){
-    if(i >= uSteps) break;
-    float t = t0 + (i + 0.5) * dt;
+    if(i >= steps) break;
+    float t = t0 + (i + jitter) * dt;
     vec3 p = ro + rd * t;
-    float r = length(p);
-    if(r < uRIn) continue;
-    vec3 n = p / r;
-    float lat = asin(clamp(n.y, -1.0, 1.0));      // -pi/2 .. pi/2
-    float lon = atan(n.x, n.z);                    // -pi .. pi (lon=0 -> +Z)
-    vec2 uv = vec2(lon * 0.15915494 + 0.5, lat * 0.31830989 + 0.5);
-    float z = clamp((r - uRIn) / max(1e-4, uROut - uRIn), 0.0, 1.0);
-    float d = texture(uVol, vec3(uv, z)).r;
-    // Threshold out thin/hazy humidity so only consolidated clouds show.
-    // Step opacity scaled by segment length for consistent density.
-    float density = smoothstep(0.18, 0.55, d);
-    float a = density * uDensity * (dt / 0.01);
-    a = clamp(a, 0.0, 1.0);
-    if(a <= 0.001) continue;
-    // Soft directional shading: sunlit clouds brighter, night side dimmer.
-    float lit = 0.45 + 0.55 * max(0.0, dot(n, normalize(uSunDir)));
-    vec3 cloud = vec3(0.92, 0.95, 1.0) * lit;
+    float density = sampleDensity(p);
+    if(density <= 0.001) continue;
+    float a = clamp(density * uDensity * (dt / 0.01), 0.0, 1.0);
+
+    // Short light march toward the sun gives soft self-shadowing inside clouds.
+    float shadow = 0.0;
+    vec3 lp = p;
+    for(float j = 0.0; j < 4.0; j++){
+      lp += sun * 0.045;
+      shadow += sampleDensity(lp) * 0.25;
+    }
+    float trans = exp(-shadow * 1.6);
+    float cosT = dot(rd, sun);
+    float phase = 0.55 + 0.45 * hg(cosT, 0.35);
+    float powder = 1.0 - exp(-density * 2.5);
+    vec3 cloud = mix(vec3(0.52, 0.64, 0.82), vec3(1.0, 0.98, 0.94), trans);
+    cloud *= (0.35 + 0.65 * trans) * phase * (0.75 + 0.25 * powder);
     acc.rgb += (1.0 - acc.a) * a * cloud;
     acc.a   += (1.0 - acc.a) * a;
     if(acc.a > 0.98) break;
@@ -104,6 +131,7 @@ export class VolumetricCloudLayer {
         uSunDir: { value: new THREE.Vector3(1, 0, 0) },
         uRIn: { value: R_IN }, uROut: { value: R_OUT },
         uDensity: { value: 0.08 }, uSteps: { value: 48 }, uOpacity: { value: 1 },
+        uTime: { value: 0 },
       },
       transparent: true, depthWrite: false, depthTest: false,
       side: THREE.BackSide, blending: THREE.NormalBlending,
@@ -141,9 +169,10 @@ export class VolumetricCloudLayer {
     this.mesh.visible = true
   }
 
-  update(camPos: THREE.Vector3, sunDir: THREE.Vector3): void {
+  update(camPos: THREE.Vector3, sunDir: THREE.Vector3, time = 0): void {
     ;(this.material.uniforms.uCamPos.value as THREE.Vector3).copy(camPos)
     ;(this.material.uniforms.uSunDir.value as THREE.Vector3).copy(sunDir)
+    this.material.uniforms.uTime.value = time
   }
 
   setVisible(v: boolean): void { this.mesh.visible = v && !!this.texture }

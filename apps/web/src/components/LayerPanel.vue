@@ -37,13 +37,15 @@ const label: Record<string, string> = { forecast: '全球预报', fixture: '演�
     <label class="row"><span>自动高分辨率 LOD</span><input type="checkbox" v-model="store.state.autoHiRes" /></label>
     <p class="hint">放大到美国区域（HRRR 3km 覆盖）时自动加载高分辨率数据场；其余地区用 GFS 0.25°（25km）。</p>
     <label class="row"><span>风粒子</span><input type="checkbox" v-model="store.state.showParticles" /></label>
+    <label class="row"><span>GPU 粒子流（WebGL2）</span><input type="checkbox" v-model="store.state.useGpuWind" /></label>
+    <label class="row"><span>风场拖尾光带</span><input type="checkbox" v-model="store.state.showTrails" /></label>
     <label class="row"><span>500 hPa 高空风丝带</span><input type="checkbox" v-model="store.state.showJet" /></label>
     <label class="row"><span>站点标记</span><input type="checkbox" v-model="store.state.showStations" /></label>
     <label class="row"><span>局部地形 (DEM)</span><input type="checkbox" v-model="store.state.showTerrain" /></label>
     <label class="row col" v-if="store.state.showTerrain"><span>地形夸张 <b>×{{ store.state.terrainExaggeration }}</b></span>
       <input type="range" min="0.5" max="8" step="0.5" v-model.number="store.state.terrainExaggeration" /></label>
     <label class="row col"><span>粒子数量 <b>{{ store.state.particleCount }}</b></span>
-      <input type="range" min="500" max="10000" step="500" v-model.number="store.state.particleCount" /></label>
+      <input type="range" min="1000" max="30000" step="1000" v-model.number="store.state.particleCount" /></label>
     <label class="row col"><span>图层不透明度 <b>{{ Math.round(store.state.layerOpacity * 100) }}%</b></span>
       <input type="range" min="0.1" max="1" step="0.05" v-model.number="store.state.layerOpacity" /></label>
     <label class="row"><span>☁ 3D 体积云显示</span><input type="checkbox" v-model="store.state.showVolume" /></label>
@@ -63,7 +65,10 @@ const label: Record<string, string> = { forecast: '全球预报', fixture: '演�
     <label class="row"><span>✈️ 实时航班流</span><input type="checkbox" v-model="store.state.showFlights" /></label>
     <label class="row"><span>🌀 热带气旋</span><input type="checkbox" v-model="store.state.showStorms" /></label>
     <label class="row"><span>☀️ 日冕物质抛射 CME</span><input type="checkbox" v-model="store.state.showCme" /></label>
-    <p class="hint">数据每 60s 自动刷新：USGS / NOAA SWPC / OpenSky / NHC / NASA DONKI。当前活跃风暴与 CME 数量随实时情况变化。</p>
+    <label class="row"><span>🌐 全球灾害预警 (GDACS/EONET)</span><input type="checkbox" v-model="store.state.showDisasters" /></label>
+    <label class="row"><span>🔥 NASA FIRMS 全球火点</span><input type="checkbox" v-model="store.state.showFires" /></label>
+    <label class="row"><span>🛰️ 全球气旋轨迹</span><input type="checkbox" v-model="store.state.showTracks" /></label>
+    <p class="hint">GDACS 覆盖全球气旋/洪水/火山/干旱/野火；FIRMS 需配置免费 MAP_KEY，未配置时可看 EONET 野火事件。数据每 60s 自动刷新。</p>
 
     <div class="divider"></div>
     <div class="group-title">✦ 视觉特效</div>
@@ -73,6 +78,7 @@ const label: Record<string, string> = { forecast: '全球预报', fixture: '演�
       <input type="range" min="0" max="1" step="0.05" v-model.number="store.state.cloudStrength" /></label>
     <label class="row"><span>高清卫星瓦片 (Esri)</span><input type="checkbox" v-model="store.state.hdTiles" /></label>
     <p class="hint">开启后按缩放级别动态加载 Esri World Imagery 瓦片（z{{ store.state.tileInfo.zoom }}，约 {{ store.state.tileInfo.resolutionM < 10 ? store.state.tileInfo.resolutionM.toFixed(1) : Math.round(store.state.tileInfo.resolutionM) }} m/像素），可放大到区县/街道级。 imagery © Esri, Maxar。</p>
+    <label class="row"><span>电影感调色（暗角/色差）</span><input type="checkbox" v-model="store.state.cinematicGrade" /></label>
     <label class="row"><span>Bloom 辉光</span><input type="checkbox" v-model="store.state.bloom" /></label>
     <label class="row col"><span>辉光强度 <b>{{ store.state.bloomStrength.toFixed(2) }}</b></span>
       <input type="range" min="0" max="2" step="0.05" v-model.number="store.state.bloomStrength" /></label>

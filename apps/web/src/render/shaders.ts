@@ -84,6 +84,8 @@ uniform vec3 uCameraPos;
 uniform float uTime;
 uniform float uNightLights;
 uniform float uCloudStrength;
+uniform sampler2D uWaveMap;
+uniform float uWaveStrength;
 varying vec2 vUv;
 varying vec3 vNormalW;
 varying vec3 vWorldPos;
@@ -99,6 +101,18 @@ void main(){
   // Ocean mask from colour: blue-dominant pixels.
   float ocean = smoothstep(0.02,0.22, albedo.b - max(albedo.r,albedo.g));
 
+  // Optional GFS-Wave height field (0..1 normalised). Adds a moving ripple
+  // normal, brighter sun glint and foam on the highest seas. Data is real
+  // significant wave height; the ripple micro-normal is decorative.
+  float wave = 0.0;
+  if (uWaveStrength > 0.001) {
+    wave = texture2D(uWaveMap, vUv).r;
+    vec2 rp = vUv * vec2(160.0, 80.0);
+    float w1 = sin(rp.x + uTime*1.7 + sin(rp.y*0.7));
+    float w2 = sin(rp.y*1.9 - uTime*1.2);
+    N = normalize(N + vec3(w1*0.018, w2*0.018, 0.0) * ocean * uWaveStrength);
+  }
+
   // Diffuse day lighting.
   float dayAmt = smoothstep(-0.15,0.20,ndl);
   vec3 day = albedo * (0.30 + 0.90*max(ndl,0.0));
@@ -106,16 +120,24 @@ void main(){
   // Ocean specular sun glint.
   vec3 H = normalize(L+V);
   float spec = pow(max(dot(N,H),0.0),80.0) * ocean * max(ndl,0.0);
-  day += vec3(0.75,0.88,1.0)*spec*1.4;
+  day += vec3(0.75,0.88,1.0)*spec*1.4*(1.0 + wave*uWaveStrength*1.5);
+  // Foam only where the real wave field is high.
+  float foam = smoothstep(0.6, 0.95, wave) * ocean * uWaveStrength;
+  day += vec3(0.8,0.92,1.0)*foam*0.45;
 
-  // Warm terminator band.
-  float term = exp(-pow(ndl*5.0,2.0));
-  day += vec3(1.0,0.42,0.15)*term*0.30;
+  // Cinematic terminator: broad sunset band + thin golden rim.
+  // Use t*t instead of pow(ndl,2.0): pow with a negative base is undefined.
+  float tt = ndl * 5.0;
+  float term = exp(-tt*tt);
+  float rr = ndl * 13.0;
+  float rim = exp(-rr*rr);
+  day += vec3(1.0,0.42,0.15)*term*0.42;
+  day += vec3(1.0,0.74,0.36)*rim*0.30;
 
   // Night side: REAL NASA Black Marble city lights (no synthetic noise).
   vec3 nightTex = texture2D(uNightMap, vUv).rgb;
   float lum = dot(nightTex, vec3(0.299,0.587,0.114));
-  vec3 night = albedo*0.045 + vec3(0.006,0.012,0.032);
+  vec3 night = albedo*0.035 + vec3(0.004,0.009,0.027);
   // Boost the real lights gently; they carry genuine city footprints.
   night += nightTex * (0.8 + 2.0*lum) * uNightLights;
 
@@ -161,8 +183,13 @@ void main(){
   vec3 warm = vec3(1.0,0.42,0.16);
   vec3 night = vec3(0.03,0.08,0.25);
   vec3 col = mix(night, blue, smoothstep(-0.25,0.6,sun));
+  // Ozone absorbs green/orange in the upper limb, leaving a deeper blue.
+  col = mix(col, vec3(0.10,0.28,0.78), rim*0.22*smoothstep(0.0,0.5,sun));
   col = mix(col, warm, exp(-pow(sun*3.5,2.0))*0.7);
-  float alpha = rim*(0.3+0.7*smoothstep(-0.4,0.5,sun));
+  // Mie forward scattering near the sun-facing limb.
+  float mie = pow(max(dot(L, -V),0.0), 18.0) * smoothstep(-0.15,0.5,sun);
+  col += vec3(1.0,0.82,0.6)*mie*0.55;
+  float alpha = rim*(0.3+0.7*smoothstep(-0.4,0.5,sun)) + mie*0.12;
   gl_FragColor = vec4(col*1.25, alpha*0.42);
 }`
 
@@ -219,6 +246,8 @@ export function makeEarthMaterial(texture: THREE.Texture | null, nightTexture: T
       uTime: { value: 0 },
       uNightLights: { value: 1.0 },
       uCloudStrength: { value: 0.35 },
+      uWaveMap: { value: null },
+      uWaveStrength: { value: 0 },
     },
   })
 }

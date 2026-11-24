@@ -14,7 +14,7 @@ from datetime import datetime, timezone
 
 from .config import get_settings
 from .catalog import repository as repo
-from .ingest import fixtures, gfs, metar, ifs, realtime, volume
+from .ingest import disasters, gefs, fixtures, gfs, metar, ifs, oisst, realtime, volume, wave
 
 log = logging.getLogger("earthsim.worker")
 _stop = False
@@ -39,12 +39,18 @@ def run_once(settings) -> None:
         ("awc_metar", settings.metar_poll_seconds, metar.refresh),
         ("ecmwf_ifs", settings.gfs_poll_seconds, ifs.refresh),
         ("gfs_volume", settings.gfs_poll_seconds, volume.refresh),
+        ("noaa_wave", settings.gfs_poll_seconds, wave.refresh),
+        ("noaa_oisst", settings.gfs_poll_seconds, oisst.refresh),
+        ("noaa_gefs", settings.gfs_poll_seconds, gefs.refresh),
         ("usgs_quake", settings.realtime_poll_seconds, realtime.refresh_quakes),
         ("opensky", settings.realtime_poll_seconds, realtime.refresh_flights),
         ("nhc_storm", settings.realtime_poll_seconds, realtime.refresh_storms),
         ("nasa_cme", settings.realtime_poll_seconds, realtime.refresh_cme),
         ("noaa_aurora", settings.realtime_poll_seconds, realtime.refresh_aurora),
         ("noaa_solar_wind", settings.realtime_poll_seconds, realtime.refresh_solar_wind),
+        ("gdacs", settings.realtime_poll_seconds, disasters.refresh_gdacs),
+        ("eonet", settings.realtime_poll_seconds, disasters.refresh_eonet),
+        ("nasa_firms", settings.realtime_poll_seconds, disasters.refresh_firms),
     ):
         try:
             result = fn()
@@ -73,15 +79,23 @@ def main() -> None:
             ("awc_metar", metar.refresh),
             ("ecmwf_ifs", ifs.refresh),
             ("gfs_volume", volume.refresh),
+            ("noaa_wave", wave.refresh),
+            ("noaa_oisst", oisst.refresh),
+            ("noaa_gefs", gefs.refresh),
             ("usgs_quake", realtime.refresh_quakes),
             ("opensky", realtime.refresh_flights),
             ("nhc_storm", realtime.refresh_storms),
             ("nasa_cme", realtime.refresh_cme),
             ("noaa_aurora", realtime.refresh_aurora),
             ("noaa_solar_wind", realtime.refresh_solar_wind),
+            ("gdacs", disasters.refresh_gdacs),
+            ("eonet", disasters.refresh_eonet),
+            ("nasa_firms", disasters.refresh_firms),
         )
         intervals = [settings.gfs_poll_seconds, settings.metar_poll_seconds,
-                     settings.gfs_poll_seconds, settings.gfs_poll_seconds] + [settings.realtime_poll_seconds] * 6
+                     settings.gfs_poll_seconds, settings.gfs_poll_seconds,
+                     settings.gfs_poll_seconds, settings.gfs_poll_seconds,
+                     settings.gfs_poll_seconds] + [settings.realtime_poll_seconds] * 9
         next_run = next_run + [0.0] * (len(jobs) - len(next_run))
         # Run due sources concurrently and fire-and-forget: a slow collector
         # (e.g. IFS's 95 MB download) must not block the loop or starve fast

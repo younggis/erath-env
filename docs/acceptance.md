@@ -21,6 +21,17 @@
 | EXT-04 | 实时事件 / 空间天气 | 通过 | 6 源全部 200 可达并解码发布：地震 / 航班 / 气旋 / CME / 极光 / 太阳风；前端开关 + 60s 刷新（`diag-realtime-events.png`） |
 | EXT-05 | 机场观测 METAR | 通过 | AWC 真实 JSON 归一化；约 60 个机场；VRB / 静风 / 删失能见度 / 缺字段处理；站点端点过滤非站点事件 |
 | EXT-06 | 真实昼夜与地球视觉 | 通过 | 太阳方向按真实 UTC 每帧计算；春分/夏至/冬至直射点验证通过；NASA Black Marble 夜间灯光；Esri 高清瓦片贴地 z14 ≈ 7.8 m/像素（`07-county-zoom.png`） |
+| EXT-07 | 全球灾害事件与轨迹 | 通过 | GDACS/EONET/FIRMS 适配器 + 去重入库；实测 `gdacs=6`、`eonet=29`、`firms=0`（未配 MAP_KEY）；前端 3 个开关与事件详情生效；浏览器无 JS 错误（`disasters-check.png`） |
+| EXT-08 | 渲染基础与画质档 | 通过 | EffectComposer 4× MSAA；关闭 Bloom 仍正常出图（`bloom-off-check.png`）；3 秒 FPS EMA + 26/45fps 迟滞自动降/升画质，7 项画质策略单测通过 |
+| EXT-09 | GFS-Wave 全球海浪 | 通过 | NOMADS 0.25° 三层字段 1.8MB/时效实测下载解码；发布 4 图层 × 4 时效；波高驱动海面高光/泡沫，波向驱动粒子；浏览器验证 24 图层、无 JS 错误（`wave-ocean-check.png`） |
+| EXT-10 | 体积云与大气质感 | 通过 | 体积云加入蓝噪声抖动、自适应步数、向光自阴影、HG 前向散射；大气边缘加入臭氧与 Mie 前向散射；浏览器切换 `cloud_volume` 验证无 JS 错误（`cloud-v2-check.png`） |
+| EXT-11 | OISST 全球日海温 | 通过 | NCEI ERDDAP 1MB NetCDF3 实测下载解码；滚转经度、掩膜哨兵并发布 `sst` 图层；浏览器验证（当时 25 图层，现为 30）、观测时刻 2026-11-07、无 JS 错误（`oisst-check.png`）；上游约两周滞后已标注 |
+| EXT-12 | CAMS 全球大气成分 | 部分（上游限流） | 适配器、5° 采样、格网解码、3 图层注册与缓存机制通过 fixture 测试；本机 Open-Meteo IP 配额触发 429，真实发布待配额恢复/目标机复跑；明确标注为 CAMS 0.4° 的 5° 降采样 |
+| EXT-13 | GEFS 集合不确定性 | 通过 | `geavg`/`gespr` 0.5° 子集实测下载解码；5 图层 × 3 时效发布；概率图层明确为高斯近似；浏览器验证 30 图层、无 JS 错误（`gefs-prob-check.png`） |
+| EXT-14 | GPU 风场粒子 | 通过 | WebGL2 + `EXT_color_buffer_float` ping-pong 状态纹理，CPU 不再逐帧遍历粒子；GLSL 短拖尾粒子按风速着色；开关切换 CPU/GPU 互斥可见；浏览器实测 `supported=true`、默认 16000 粒子 160+ FPS、双帧画面差分确认粒子持续运动、关闭后回退 CPU（上限 8000），无 JS 错误（`gpu-wind-check.png`、`motion-diff.png`） |
+| EXT-15 | 风场拖尾光带 | 通过 | 粒子状态累积到半分辨率 ping-pong 缓冲形成连续光带；背面粒子顶点剔除、相机移动时快速衰减；浏览器实测开关正常、160+ FPS、无 JS 错误（`trails-check.png`） |
+| EXT-16 | 晨昏光照与电影调色 | 通过 | 晨昏金色光带+夜面对比增强；`OutputPass` 前插入暗角/轻色差/微颗粒 pass，开关实测画面差异正常；修复 `pow(负数,2.0)` 未定义行为；无 JS 错误（`cinematic-check.png`） |
+| EXT-17 | 地点预报卡 | 通过 | 拾取点按当前图层全部时效并发调用 `/api/v1/sample`，详情面板绘制折线与数值表；浏览器实测 4 时效、数值与 API 一致、无 JS 错误（`forecast-card.png`） |
 | AC-07 | 性能与体验 | 部分（依机器） | API P95 9.9 ms；HUD 显示 FPS/粒子/draw calls（96–116 FPS @3000 粒子）；首屏/内存目标需目标机按规格实测 |
 
 已移除且不再适用：原 AC-07～AC-11（模拟提交、成果查看、作业恢复、观测验证、复跑）、
@@ -30,11 +41,11 @@
 
 ```bash
 # 后端（backend/ 目录，fixture 模式）
-$env:EARTHSIM_DATA_MODE='fixture'; python -m pytest -q     # 20 passed
+$env:EARTHSIM_DATA_MODE='fixture'; python -m pytest -q     # 36 passed
 
 # 前端
 cd apps/web
-npm test -- --run       # 3 passed
+npm test -- --run       # 19 passed
 npm run build           # 通过（vue-tsc + vite）
 
 # 资产
@@ -45,16 +56,16 @@ python -m earthsim.cli catalog stats                       # 目录统计
 在线 API 实测：
 
 - `GET /api/v1/health` → `status=ok`，`mode=live`。
-- `GET /api/v1/layers` → 20 个图层，全部 `kind=forecast`，无 WRF / 卫星图层。
-- `GET /api/v1/sources` → 12 个 source_id：`awc_metar`、`demo`、`ecmwf_ifs`、`gfs_volume`、
-  `nasa_cme`、`nhc_storm`、`noaa_aurora`、`noaa_gfs`、`noaa_hrrr`、`noaa_solar_wind`、
-  `opensky`、`usgs_quake`。
+- `GET /api/v1/layers` → 30 个图层，全部 `kind=forecast`，无 WRF / 卫星图层。
+- `GET /api/v1/sources` → 19 个 source_id：`awc_metar`、`cams`、`demo`、`ecmwf_ifs`、`eonet`、
+  `gdacs`、`gfs_volume`、`nasa_cme`、`nasa_firms`、`nhc_storm`、`noaa_aurora`、`noaa_gefs`、
+  `noaa_gfs`、`noaa_hrrr`、`noaa_oisst`、`noaa_solar_wind`、`noaa_wave`、`opensky`、`usgs_quake`。
 - `GET /api/v1/simulation/presets` → 404（确认区域模拟端点已移除）。
 
 浏览器实测（Playwright，无 JS 错误）：
 
 - 顶部导航仅「看预报」；右侧无 tab（只「点位详情」）；时间轴无模式切换器。
-- 左侧「全球预报」分组 20 个图层；实时事件、体积云、视觉特效开关齐全。
+- 左侧「全球预报」分组 30 个图层；实时事件、体积云、视觉特效、GPU 粒子流开关齐全。
 - 快速切换图层与实时事件开关，数据加载与 toast 提示正常。
 
 ## 3. 坐标与数据正确性修复（历史记录，需回归保持）

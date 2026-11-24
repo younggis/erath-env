@@ -23,7 +23,62 @@ const station = computed(() => {
   })).sort((a, b) => a.d - b.d)[0]
   return near && near.d < 2 ? near.st : null
 })
+const event = computed(() => {
+  const f = store.state.focusedEvent
+  if (!f) return null
+  return (store.state.realtimeEvents[f.source] || []).find(e => e.station_id === f.id) || null
+})
+const eventRows = computed(() => Object.entries(event.value?.values || {})
+  .filter(([k]) => k !== 'report_url' && k !== 'geometry_url' && k !== 'link')
+  .slice(0, 10))
 const fmt = (v: any) => v === null || v === undefined ? '—' : typeof v === 'number' ? (Math.abs(v) < 0.001 && v !== 0 ? v.toExponential(2) : v.toFixed(2)) : (typeof v === 'object' ? JSON.stringify(v) : v)
+
+// Forecast card: one value per available lead at the picked point.
+const forecastPoints = computed(() => {
+  const f = store.state.forecast
+  if (!f || !f.points.length) return []
+  const isWind = f.points.some(p => p.sample.values.some(v => v.id === 'wind'))
+  return f.points.map(p => {
+    let value: number | null = null
+    let unit = ''
+    if (isWind) {
+      const w = p.sample.values.find(v => v.id === 'wind')
+      value = typeof w?.value?.speed_ms === 'number' ? w.value.speed_ms : null
+      unit = 'm/s'
+    } else {
+      const v = p.sample.values.find(x => x.id !== 'wind')
+      value = typeof v?.display_value === 'number' ? v.display_value : null
+      unit = v?.display_unit || v?.unit || ''
+    }
+    return { time: p.validTime, value, unit }
+  })
+})
+
+const chart = computed(() => {
+  const pts = forecastPoints.value
+  const vals = pts.map(p => p.value).filter((v): v is number => v !== null)
+  if (!vals.length) return null
+  let min = Math.min(...vals), max = Math.max(...vals)
+  if (max - min < 1e-6) { min -= 1; max += 1 }
+  const pad = (max - min) * 0.15
+  min -= pad; max += pad
+  const W = 300, H = 96, pl = 4, pr = 4, tp = 8, pb = 16
+  const x = (i: number) => pl + (i / Math.max(1, pts.length - 1)) * (W - pl - pr)
+  const y = (v: number) => tp + (1 - (v - min) / (max - min)) * (H - tp - pb)
+  const segs: string[] = []
+  let cur: string[] = []
+  pts.forEach((p, i) => {
+    if (p.value === null) { if (cur.length > 1) segs.push(cur.join(' ')); cur = [] }
+    else cur.push(`${x(i).toFixed(1)},${y(p.value).toFixed(1)}`)
+  })
+  if (cur.length > 1) segs.push(cur.join(' '))
+  const dots = pts.map((p, i) => p.value === null ? null : { x: x(i), y: y(p.value), ...p })
+    .filter((d): d is NonNullable<typeof d> => d !== null)
+  return { W, H, segs, dots, min, max, unit: pts[0]?.unit || '' }
+})
+
+const timeLabel = (t: string) => t.slice(5, 16).replace('T', ' ')
+const valFmt = (v: number | null) => v === null ? '—' : (Math.abs(v) >= 100 ? v.toFixed(0) : v.toFixed(1))
 </script>
 
 <template>
@@ -50,6 +105,38 @@ const fmt = (v: any) => v === null || v === undefined ? '—' : typeof v === 'nu
           <div><span>来向</span><b>{{ v.value?.direction_from_deg === null ? '静风' : fmt(v.value?.direction_from_deg) + '° ' + v.value?.compass }}</b></div>
         </div>
         <p>{{ store.state.selected.note }}</p>
+      </div>
+    </div>
+
+    <div class="block" v-if="chart">
+      <div class="eyebrow">FORECAST AT THIS POINT · {{ forecastPoints.length }} 时效</div>
+      <svg class="chart" :viewBox="`0 0 ${chart.W} ${chart.H}`" preserveAspectRatio="none">
+        <line :x1="4" :y1="chart.H - 16" :x2="chart.W - 4" :y2="chart.H - 16" stroke="rgba(255,255,255,.12)" />
+        <polyline v-for="(s, i) in chart.segs" :key="i" :points="s" fill="none" stroke="var(--accent)" stroke-width="1.8" stroke-linejoin="round" />
+        <circle v-for="(d, i) in chart.dots" :key="i" :cx="d.x" :cy="d.y" r="2.6" fill="#fff">
+          <title>{{ timeLabel(d.time) }} · {{ valFmt(d.value) }} {{ chart.unit }}</title>
+        </circle>
+      </svg>
+      <div class="chart-legend">
+        <span>{{ timeLabel(forecastPoints[0].time) }}</span>
+        <span>{{ chart.min.toFixed(1) }}–{{ chart.max.toFixed(1) }} {{ chart.unit }}</span>
+        <span>{{ timeLabel(forecastPoints[forecastPoints.length - 1].time) }}</span>
+      </div>
+      <div class="fc-list">
+        <div v-for="(p, i) in forecastPoints" :key="i"><span>{{ timeLabel(p.time) }}</span><b>{{ valFmt(p.value) }} {{ p.unit }}</b></div>
+      </div>
+    </div>
+
+    <div class="block" v-if="event">
+      <div class="eyebrow">REAL-TIME EVENT</div>
+      <h3>{{ event.values?.name || event.values?.title || event.station_id }}</h3>
+      <div class="kv"><span>来源</span><b>{{ event.source_id }}</b></div>
+      <div class="kv"><span>观测时刻</span><b>{{ event.observed_at }}</b></div>
+      <div class="kv"><span>位置</span><b>{{ event.lat.toFixed(2) }}°, {{ event.lon.toFixed(2) }}°</b></div>
+      <div class="kv" v-for="[k, v] in eventRows" :key="k"><span>{{ k }}</span><b>{{ fmt(v) }}</b></div>
+      <div class="kv" v-if="event.values?.report_url || event.values?.link">
+        <span>原文</span>
+        <a :href="event.values?.report_url || event.values?.link" target="_blank" rel="noopener">打开 ↗</a>
       </div>
     </div>
 
@@ -99,7 +186,14 @@ h3 { margin: 6px 0 12px; font-size: 14px; color: #8fe8c0; }
 .wind-card p { font-size: 9.5px; color: var(--muted); margin: 8px 0 0; line-height: 1.5; }
 .kv { display: flex; justify-content: space-between; gap: 10px; font-size: 11px; padding: 5px 0; color: var(--muted); }
 .kv b { color: var(--text); font-weight: 500; text-align: right; }
+.kv a { color: var(--accent); font-size: 11px; text-decoration: none; }
+.kv a:hover { text-decoration: underline; }
 .kv b.ok { color: #6ef0b4; } .kv b.warn { color: #ffd479; }
 .legend .bar { height: 10px; border-radius: 5px; margin: 12px 0 4px; border: 1px solid rgba(255,255,255,.12); }
 .bar-labels { display: flex; justify-content: space-between; font: 10px ui-monospace, monospace; color: var(--muted); margin-bottom: 10px; }
+.chart { width: 100%; height: 96px; display: block; margin-top: 10px; overflow: visible; }
+.chart-legend { display: flex; justify-content: space-between; font: 10px ui-monospace, monospace; color: var(--muted); margin-bottom: 8px; }
+.fc-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 10px; }
+.fc-list div { display: flex; justify-content: space-between; gap: 6px; font: 10px ui-monospace, monospace; color: var(--muted); }
+.fc-list b { color: var(--text); font-weight: 600; }
 </style>

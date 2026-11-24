@@ -35,6 +35,25 @@ export interface SolarWindData {
   history: Array<{ time: string; speed: number; density: number; temperature: number }>
 }
 
+export interface CycloneTrack {
+  id: string
+  name: string | null
+  source: string | null
+  points: Array<{
+    lon: number
+    lat: number
+    time: string
+    wind_kmh: number | null
+    status: string | null
+    forecast: boolean
+  }>
+}
+
+export interface TrackData {
+  tracks: CycloneTrack[]
+  received_at: string | null
+}
+
 export interface RealtimeSummary {
   status: Record<string, string>
   kp: number | null
@@ -43,7 +62,10 @@ export interface RealtimeSummary {
   server_time: string
 }
 
-export const EVENT_TYPES = ['usgs_quake', 'opensky', 'nhc_storm', 'nasa_cme'] as const
+export const EVENT_TYPES = [
+  'usgs_quake', 'opensky', 'nhc_storm', 'nasa_cme',
+  'gdacs', 'eonet', 'nasa_firms',
+] as const
 export type EventType = typeof EVENT_TYPES[number]
 
 async function get<T>(path: string, params: Record<string, string | number> = {}): Promise<T> {
@@ -59,6 +81,7 @@ export const realtimeApi = {
   aurora: () => get<AuroraData>('/realtime/aurora'),
   solarWind: () => get<SolarWindData>('/realtime/solar-wind'),
   summary: () => get<RealtimeSummary>('/realtime/summary'),
+  tracks: () => get<TrackData>('/realtime/tracks'),
 }
 
 /** Fetch every real-time dataset with per-feed error isolation. */
@@ -67,24 +90,33 @@ export async function fetchAllRealtime(): Promise<{
   aurora: AuroraData | null
   wind: SolarWindData | null
   summary: RealtimeSummary | null
+  tracks: TrackData | null
   updatedAt: string
 }> {
   const events: Partial<Record<EventType, RealtimeEvent[]>> = {}
   const safe = async <T>(fn: () => Promise<T>): Promise<T | null> => {
     try { return await fn() } catch { return null }
   }
-  const [q, f, s, c, a, w, sum] = await Promise.all([
+  const [q, f, s, c, d, e, fi, a, w, sum, tr] = await Promise.all([
     safe(() => realtimeApi.events('usgs_quake')),
     safe(() => realtimeApi.events('opensky')),
     safe(() => realtimeApi.events('nhc_storm')),
     safe(() => realtimeApi.events('nasa_cme')),
+    safe(() => realtimeApi.events('gdacs')),
+    safe(() => realtimeApi.events('eonet')),
+    safe(() => realtimeApi.events('nasa_firms')),
     safe(() => realtimeApi.aurora()),
     safe(() => realtimeApi.solarWind()),
     safe(() => realtimeApi.summary()),
+    safe(() => realtimeApi.tracks()),
   ])
   if (q) events.usgs_quake = q.events
   if (f) events.opensky = f.events
   if (s) events.nhc_storm = s.events
   if (c) events.nasa_cme = c.events
-  return { events, aurora: a, wind: w, summary: sum, updatedAt: new Date().toISOString() }
+  if (d) events.gdacs = d.events
+  if (e) events.eonet = e.events
+  if (fi) events.nasa_firms = fi.events
+  return { events, aurora: a, wind: w, summary: sum, tracks: tr,
+           updatedAt: new Date().toISOString() }
 }

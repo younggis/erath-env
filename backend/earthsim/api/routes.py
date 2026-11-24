@@ -57,6 +57,19 @@ LAYER_INFO: dict[str, dict] = {
     "ifs_ssrd": {"label": "IFS 向下短波辐射", "unit": "J/m2", "display_unit": "MJ/m2", "palette": "cape", "kind": "forecast", "layer_type": "scalar"},
     "ifs_100u": {"label": "IFS 100m U 风", "unit": "m/s", "display_unit": "m/s", "palette": "wind", "kind": "forecast", "layer_type": "scalar"},
     "ifs_100v": {"label": "IFS 100m V 风", "unit": "m/s", "display_unit": "m/s", "palette": "wind", "kind": "forecast", "layer_type": "scalar"},
+    "wave_height": {"label": "全球有效波高", "unit": "m", "display_unit": "m", "palette": "wave", "kind": "forecast", "layer_type": "scalar"},
+    "wave_period": {"label": "全球峰值波周期", "unit": "s", "display_unit": "s", "palette": "waveperiod", "kind": "forecast", "layer_type": "scalar"},
+    "wave_direction": {"label": "全球平均波向（来向）", "unit": "degree", "display_unit": "°", "palette": "wavedir", "kind": "forecast", "layer_type": "scalar"},
+    "wave_drift": {"label": "全球波浪传播矢量（可视化）", "unit": "m/s", "display_unit": "m/s", "palette": "wind", "kind": "forecast", "layer_type": "vector"},
+    "sst": {"label": "全球日海温 OISST", "unit": "degC", "display_unit": "°C", "palette": "temperature", "kind": "forecast", "layer_type": "scalar"},
+    "cams_aod": {"label": "CAMS 全球气溶胶光学厚度", "unit": "1", "display_unit": "AOD", "palette": "aod", "kind": "forecast", "layer_type": "scalar"},
+    "cams_dust": {"label": "CAMS 全球沙尘浓度", "unit": "ug/m3", "display_unit": "μg/m³", "palette": "dust", "kind": "forecast", "layer_type": "scalar"},
+    "cams_pm25": {"label": "CAMS 全球 PM2.5", "unit": "ug/m3", "display_unit": "μg/m³", "palette": "pm25", "kind": "forecast", "layer_type": "scalar"},
+    "gefs_wind10_mean": {"label": "GEFS 10m 风集合均值", "unit": "m/s", "display_unit": "m/s", "palette": "wind", "kind": "forecast", "layer_type": "vector"},
+    "gefs_wind10_spread": {"label": "GEFS 10m 风集合离散度", "unit": "m/s", "display_unit": "m/s", "palette": "spread", "kind": "forecast", "layer_type": "scalar"},
+    "gefs_temp2m_mean": {"label": "GEFS 2m 气温集合均值", "unit": "K", "display_unit": "°C", "palette": "temperature", "kind": "forecast", "layer_type": "scalar"},
+    "gefs_temp2m_spread": {"label": "GEFS 2m 气温集合离散度", "unit": "K", "display_unit": "°C", "palette": "spread", "kind": "forecast", "layer_type": "scalar"},
+    "gefs_wind_prob": {"label": "GEFS 10m 风>10m/s 概率（高斯近似）", "unit": "%", "display_unit": "%", "palette": "probability", "kind": "forecast", "layer_type": "scalar"},
 
 }
 
@@ -364,6 +377,13 @@ def realtime_solar_wind() -> dict:
     if data is None:
         raise ApiError("NO_DATA", "太阳风数据尚未采集", 404)
     return data
+
+
+@router.get("/realtime/tracks")
+def realtime_tracks() -> dict:
+    """GDACS tropical-cyclone tracks (observed + forecast points)."""
+    from ..ingest.realtime import read_realtime
+    return read_realtime("gdacs_tracks.json") or {"tracks": [], "received_at": None}
 
 
 @router.get("/realtime/summary")

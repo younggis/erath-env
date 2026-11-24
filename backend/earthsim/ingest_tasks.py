@@ -9,7 +9,7 @@ from typing import Callable
 from .config import get_settings
 from .catalog import repository as repo
 from .freshness import assess
-from .ingest import gfs, metar, fixtures, hrrr, ifs, realtime, volume
+from .ingest import cams, disasters, gefs, gfs, metar, fixtures, hrrr, ifs, oisst, realtime, volume, wave
 from .fields.timeutil import to_iso
 
 TASKS: dict[str, dict] = {}
@@ -20,12 +20,19 @@ _FUNCTIONS: dict[str, Callable] = {
     "hrrr": hrrr.refresh,
     "ecmwf_ifs": ifs.refresh,
     "gfs_volume": volume.refresh,
+    "noaa_wave": wave.refresh,
+    "noaa_oisst": oisst.refresh,
+    "cams": cams.refresh,
+    "noaa_gefs": gefs.refresh,
     "usgs_quake": realtime.refresh_quakes,
     "opensky": realtime.refresh_flights,
     "nhc_storm": realtime.refresh_storms,
     "nasa_cme": realtime.refresh_cme,
     "noaa_aurora": realtime.refresh_aurora,
     "noaa_solar_wind": realtime.refresh_solar_wind,
+    "gdacs": disasters.refresh_gdacs,
+    "eonet": disasters.refresh_eonet,
+    "nasa_firms": disasters.refresh_firms,
     "realtime_all": realtime.refresh,
     "demo": fixtures.install_all,
 }

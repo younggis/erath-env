@@ -17,6 +17,7 @@ from typing import Any
 from ..config import get_settings
 from ..fields.timeutil import to_iso
 from ..catalog import repository as repo
+from . import disasters
 from .base import IngestError, mark_failure, mark_success
 
 log = logging.getLogger(__name__)
@@ -35,6 +36,9 @@ EVENT_SOURCES = {
     "opensky": "OpenSky 实时航班",
     "nhc_storm": "NOAA NHC 热带气旋",
     "nasa_cme": "NASA DONKI 日冕物质抛射",
+    "gdacs": "GDACS 全球灾害预警",
+    "eonet": "NASA EONET 自然事件",
+    "nasa_firms": "NASA FIRMS 全球火点",
 }
 FIELD_SOURCES = {
     "noaa_aurora": "NOAA SWPC 极光概率",
@@ -52,6 +56,9 @@ SOURCE_STALE_MINUTES: dict[str, int] = {
     "noaa_solar_wind": 30,
     "nhc_storm": 360,     # NHC issues advisories ~6h
     "nasa_cme": 720,      # CME events are sporadic (hours apart)
+    "gdacs": 360,         # event-driven; multi-hazard alerts
+    "eonet": 1440,        # curated natural events, often daily
+    "nasa_firms": 360,    # satellite overpasses, not continuous
 }
 
 
@@ -339,6 +346,7 @@ _REFRESHERS = {
     "nasa_cme": refresh_cme,
     "noaa_aurora": refresh_aurora,
     "noaa_solar_wind": refresh_solar_wind,
+    **disasters._REFRESHERS,
 }
 
 

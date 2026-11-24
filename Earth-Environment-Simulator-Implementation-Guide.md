@@ -22,17 +22,20 @@
 | 入口 | 当前状态 | 说明 |
 |---|---|---|
 | 顶部导航「看预报」 | 唯一导航项 | 选中第一个可用的预报图层；无「看现在」「算这个区域」 |
-| 左侧「数据图层」 | 20 个预报图层 | 单一「全球预报」分组；另有渲染控制、实时事件、视觉特效、数据源面板 |
+| 左侧「数据图层」 | 30 个预报图层（按常用度排序） | 单一「全球预报」分组，由 `src/layerOrder.ts` 统一排序：近地常用天气（风/气温/气压/降水/湿度/露点/能见度/体积云）→ 高空诊断 → 高分辨率区域 → 海洋 → IFS → GEFS；未列入的新图层保持原顺序置于末尾。另含渲染控制、实时事件、视觉特效、数据源面板 |
 | 中部三维地球 | 主视图 | 旋转、缩放、点选取值；定位栏支持经纬度搜索与常用位置保存 |
 | 底部时间轴 | 播放/倍率/轨道/缺帧提示 | 无模式切换器（观测/区域模拟已移除）；来源标注「全球预报 / 演示」 |
 | 右侧「点位详情」 | 唯一详情面板 | 点选位置的图层值、单位、有效时刻、来源；无「区域模拟」tab |
 
-当前图层（`GET /api/v1/layers`，live 模式实测 20 个，全部 `kind=forecast`）：
+当前图层（`GET /api/v1/layers`，live 模式实测 30 个，全部 `kind=forecast`）：
 
 | 类别 | 图层 ID | 来源 |
 |---|---|---|
 | GFS 10m / 2m 基本场 | `wind10`、`temp2m`、`rh2m`、`dewpoint2m`、`mslp`、`cloud_total`、`visibility_sfc` | NOAA GFS 0.25° |
 | GFS 扩展场 | `precip`、`snow_depth`、`surface_pressure`、`cape`、`cin`、`gh500`、`vvel500`、`wind500` | NOAA GFS 0.25° |
+| 全球海浪 | `wave_height`、`wave_period`、`wave_direction`、`wave_drift`（波向换算的可视化矢量） | NOAA GFS-Wave 0.25° |
+| 全球日海温 | `sst`（约两周发布滞后） | NOAA OISST v2.1 0.5° |
+| GEFS 集合不确定性 | `gefs_wind10_mean`、`gefs_wind10_spread`、`gefs_temp2m_mean`、`gefs_temp2m_spread`、`gefs_wind_prob` | NOAA GEFS 0.5° `geavg`/`gespr` |
 | 高分辨率区域场 | `hrrr_wind10` | NOAA HRRR CONUS 3 km |
 | 3D 体积云 | `cloud_volume` | GFS 6 层相对湿度（代理量） |
 | ECMWF IFS 对比场 | `ifs_2t`、`ifs_2d`、`ifs_msl`、`ifs_10u`、`ifs_10v`、`ifs_tcc`、`ifs_lcc`、`ifs_mcc`、`ifs_hcc`、`ifs_sd`、`ifs_tcwv`、`ifs_ssrd`、`ifs_100u`、`ifs_100v` | ECMWF IFS Open Data 0.25° |
@@ -42,7 +45,7 @@
 
 ### 1.2 实时事件与空间天气（非格网图层）
 
-左侧「⚡ 实时事件 / 空间天气」分组提供 6 个开关，数据每 60s 刷新，均为真实上游数据：
+左侧「⚡ 实时事件 / 空间天气」分组提供 9 个开关，数据每 60s 刷新，均为真实上游数据：
 
 | 开关 | 数据 | 上游 |
 |---|---|---|
@@ -52,7 +55,12 @@
 | 实时航班流 | 航空器状态（限流 6000 架） | OpenSky |
 | 热带气旋 | 当前风暴 | NOAA NHC |
 | 日冕物质抛射 CME | 近 5 日 CME 事件 | NASA DONKI |
+| 全球灾害预警 | 全球地震/气旋/洪水/火山/干旱/野火 | GDACS |
+| 全球自然事件 | 策划的自然事件与来源链接 | NASA EONET |
+| FIRMS 全球火点 | VIIRS 24h 热异常点（需免费 MAP_KEY） | NASA FIRMS |
+| 全球气旋轨迹 | GDACS timeline 观测/预报点 | GDACS |
 
+GDACS 与 EONET/FIRMS 同类事件按 250 km / 72h 去重，避免同一事件重复绘制。
 机场观测（AWC METAR）作为可点选站点单独呈现，约 60 个全球主要机场。
 
 ### 1.3 术语与显示口径
@@ -148,9 +156,14 @@ earth-environment-simulator/
 | NOAA GFS 0.25° | 全球预报 12+ 字段，00/06/12/18Z 起报 | [NOMADS GRIB Filter](https://nomads.ncep.noaa.gov/) | 真实解码与发布已验证 |
 | ECMWF IFS Open Data 0.25° | 15 个 surface 字段，模式对比 | AWS S3 镜像，CC-BY-4.0 | 95MB 已下载解码发布，在线验证通过 |
 | NOAA HRRR CONUS 3 km | 10m U/V，高分辨率 LOD | NOMADS `filter_hrrr_sub.pl` | 区域格网重建与贴片渲染已验证 |
+| NOAA GFS-Wave 0.25° | 有效波高/峰值周期/平均波向 | NOMADS `filter_gfswave.pl` | 1.8MB/时效真实解码，4 图层 × 4 时效发布与浏览器验证通过 |
+| NOAA OISST v2.1 | 全球日海温 0.5°（约两周滞后） | NCEI ERDDAP 按日降采样 | 1MB NetCDF3 真实解码，`sst` 图层发布与浏览器验证通过 |
+| CAMS 全球大气成分 | AOD / 沙尘 / PM2.5，5° 降采样 | Open-Meteo `cams_global` | 适配器与 fixture 通过；本机 IP 配额触发 429，真实发布待复跑 |
+| NOAA GEFS 0.5° | 集合均值/离散度 + 超阈值概率 | NOMADS `geavg`/`gespr` | 1.3MB/时效，5 图层 × 3 时效真实发布；概率为高斯近似 |
 | GFS 多层相对湿度 | 6 层 RH → 3D 体积云 | 同 NOMADS，1000–500 hPa | 360×181×6 体数据，4 时效已验证 |
 | NOAA AWC METAR | 机场点观测 | `aviationweather.gov/api/data/metar` | 真实 JSON 已归一化 |
 | USGS / OpenSky / NHC / NASA DONKI / NOAA SWPC | 地震、航班、气旋、CME、极光、太阳风 | `ingest/realtime.py` | 6 源全部实测可达 |
+| GDACS / NASA EONET / NASA FIRMS | 全球灾害预警、自然事件、VIIRS 24h 火点 | `ingest/disasters.py` | GDACS/EONET 实测入库；FIRMS 需免费 MAP_KEY |
 | Natural Earth 110m | 陆海回退底图 | 公共领域 | 本地纹理/GeoJSON |
 | NASA Black Marble / Esri | 夜间灯光、动态高清瓦片 | CC BY 4.0 / Esri 署名 | 已接入 |
 
@@ -255,9 +268,14 @@ source_id + station_id + observed_at + revision 为逻辑键；204 无报告时�
 | gfs_poll_seconds | 900 | GFS 探测周期 |
 | gfs_lead_max_hours | 36 | 默认逐小时时效覆盖 |
 | volume_lead_max_hours | 3 | 体积云时效 f000–f003 |
+| wave_lead_max_hours | 3 | 海浪时效 f000–f003 |
 | metar_poll_seconds | 300 | METAR 更新周期 |
 | realtime_poll_seconds | 180 | 实时源采集周期 |
+| firms_map_key | 空 | NASA FIRMS 免费 MAP_KEY；留空禁用 FIRMS |
 | gfs_stale_after_hours | 13 | GFS 批次老化告警 |
+| oisst_stale_after_hours | 480 | OISST 上游约两周滞后，按 20 天判活 |
+| cams_stale_after_hours | 24 | CAMS 全球大气成分新鲜度阈值 |
+| gefs_lead_max_hours | 6 | GEFS 时效 f000/f003/f006 |
 | metar_stale_after_minutes | 120 | METAR 站点老化告警 |
 | keep_gfs_cycles | 2 | 保护最近两个完整批次 |
 | derived_cache_budget_gib | 12 | 派生缓存预算 |
@@ -286,6 +304,7 @@ source_id + station_id + observed_at + revision 为逻辑键；204 无报告时�
 | GET /api/v1/realtime/aurora | 无 | OVATION 极光概率网格 |
 | GET /api/v1/realtime/solar-wind | 无 | 风速/密度/Bz/Kp 与 3 小时历史 |
 | GET /api/v1/realtime/summary | 无 | 各实时源状态、Kp、太阳风、服务器时间 |
+| GET /api/v1/realtime/tracks | 无 | GDACS 全球气旋轨迹（观测/预报点） |
 
 > 已移除的端点：`/api/v1/simulation/*`（不存在，返回 404）；卫星图像图层相关端点/资产亦不再提供。
 
@@ -333,17 +352,39 @@ source_id + station_id + observed_at + revision 为逻辑键；204 无报告时�
 - **图层组合**。渲染顺序为地球/瓦片 → 标量色带或高分辨率贴片 → 风粒子/高空风丝带 →
   站点 → 实时事件 → 3D 体积云。左侧控制开关、不透明度、粒子数量、地形夸张、云密度、辉光。
 - **风粒子**。CPU 原型起步，对 u/v 插值后沿切平面东/北方向更新粒子；跨 180° 环绕，
-  速度、色阶、拖尾独立；无数据时明确隐藏而非伪造。
+  速度、色阶、拖尾独立；无数据时明确隐藏而非伪造。默认走 GPU 路径（`render/gpuWind.ts`）：
+  WebGL2 浮点纹理 ping-pong 保存 (lon, lat, age, seed)，全屏 pass 用同一风场纹理逐帧推进，
+  米→度换算必须用 `180/π`（写成 `π/180` 会让粒子慢 3000 倍而看似静止）；
+  顶点着色器按索引取状态纹理绘制短拖尾，NormalBlending 避免在明亮地表上过曝。
+  `EXT_color_buffer_float` 不可用时回退 CPU，CPU 粒子数上限 8000。
 - **零值透明**。`precip`、`snow`、`cloud`、`wind`、`vvel` 等「0=无物」的量使用 alpha
   渐变（0 透明→随量增不透明），避免无值区遮盖底图；`cape`/高度/温度/湿度/气压为全幅
   背景场，保持全幅显示（50% opacity 下底图透出）。`cloudwater` 本就透明。
 - **3D 体积云**。Three.js `Data3DTexture` + WebGL2 GLSL raymarching，射线在云壳层内步进
-  累加密度并带太阳方向明暗；左侧「3D 体积云显示」开关与云密度滑块；切换到其它图层自动隐藏。
+  累加密度；蓝噪声抖动起点、按射线长度自适应步数、4 步向光自阴影、HG 前向散射与 Powder
+  边缘共同提供层次感；左侧「3D 体积云显示」开关与云密度滑块；切换到其它图层自动隐藏。
+  大气壳加入臭氧吸收与 Mie 前向散射，使临边与晨昏过渡更自然。
+- **全球海浪与动态海洋**。有效波高归一化后作为地球 shader 的 `uWaveMap`，增强真实海面高光和强浪泡沫；微尺度波纹法线是装饰效果，数据本身是真实 `swh`。选择任一 wave 图层时风粒子源自动切换为 `wave_drift`（由波向换算的可视化传播矢量），无数据时回退 `wind10`。
 - **高分辨率 LOD**。开启「自动高分辨率 LOD」后，视角进入 HRRR 域（−102..−74 / 32..52）
   且缩放足够近时叠加 3km 数据场（边缘 feather 过渡），右上角提示「◆ 高分辨率数据 3 km」。
 - **图层切换反馈**。切换时立即清空旧图层并显示 loading，加载完成后渲染新帧；
   `frameDataRev` 计数器统一驱动重绘（不依赖缓存 map 的 size watch），并有居中 toast
   提示（spinner → ✓ → 淡出）。拖动时间轴取消旧请求，LRU 限制内存并主动释放 GPU 资源。
+- **全球灾害事件**。GDACS/EONET/FIRMS 以点精灵绘制：灾害预警为按等级着色的脉动菱形，
+  火点为闪烁火星，GDACS 气旋 timeline 为带流动脉冲的观测/预报轨迹线（`render/tracks.ts`）。
+  点击可见事件会在右侧显示来源、观测时刻、预警等级/强度与报告链接。
+- **画质与合成**。`PostFX` 使用 `HalfFloatType + 4× MSAA` 离屏目标，关闭 Bloom 时仍正常出图；
+  `render/quality.ts` 以 3 秒 FPS EMA 和 26/45fps 迟滞自动调整 DPR、云步数和 Bloom，
+  不覆盖用户的粒子数量、云密度与图层可见性设置。页面隐藏时暂停渲染循环。
+- **风场拖尾光带**。`render/windTrails.ts` 把 GPU 粒子状态累积到半分辨率 ping-pong 缓冲：
+  每帧先衰减上一帧，再以加法混合绘制当前粒子，最后全屏叠加到主画面，形成连续流动光带。
+  背面粒子在顶点着色器直接裁掉；相机矩阵变化时把衰减从 0.975 降到 0.5 以避免屏幕空间拖影。
+- **晨昏与电影调色**。地球 shader 的晨昏带有宽暖带+细金边（用 `t*t` 替代 `pow(ndl,2.0)`，
+  避免负底数未定义行为）；`PostFX` 在 `OutputPass` 之前插入一个线性空间 grade pass，
+  做轻暗角/色差/微颗粒，不重复色调映射。两者均有 LayerPanel 开关。
+- **地点预报卡**。点击地球触发 `store.queryPoint`，除当前帧点查外还会对当前图层全部时效
+  并发请求 `/api/v1/sample`；`DetailPanel.vue` 把结果绘成 SVG 折线与数值表。
+  切换图层时清空序列；显示时效数等于图层实际可用时效，不伪造 72h。
 
 ### 5.4 交互布局
 
@@ -450,8 +491,8 @@ cd apps/web && npm run build                     # dist 由 FastAPI 同源托管
 
 ### 7.2 当前验证结果（2026-11-24）
 
-- 后端：`EARTHSIM_DATA_MODE=fixture python -m pytest -q` → **20 passed**。
-- 前端：`npm test -- --run` → **3 passed**；`npm run build` 通过（vue-tsc + vite）。
+- 后端：`EARTHSIM_DATA_MODE=fixture python -m pytest -q` → **36 passed**。
+- 前端：`npm test -- --run` → **19 passed**；`npm run build` 通过（vue-tsc + vite）。
 - Fixture 校验：`python -m earthsim.cli fixtures verify` → 全部资产校验通过。
 - 在线 API：`/api/v1/health` ok，`/api/v1/layers` 返回 20 个 forecast 图层；
   `/api/v1/simulation/*` 返回 404（确认已移除）。

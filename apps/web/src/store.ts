@@ -1,8 +1,10 @@
 /** Central reactive store. Vue state stays separate from the Three.js loop. */
 import { reactive, computed } from 'vue'
 import { api, type Layer, type Frame, type Sample, type Station } from './api'
+import { sortLayers } from './layerOrder'
 import type { GridInfo } from './earth'
 import type { VolumeData } from './render/types'
+import type { EventType, RealtimeEvent, TrackData } from './realtime'
 
 export interface GridData { values: Float32Array; grid: GridInfo; ncomp: number }
 
@@ -14,7 +16,8 @@ const state = reactive({
   sources: [] as any[],
   dataStatus: null as Awaited<ReturnType<typeof api.dataStatus>> | null,
   // real-time events / space weather
-  realtimeEvents: {} as Partial<Record<'usgs_quake' | 'opensky' | 'nhc_storm' | 'nasa_cme', any[]>>,
+  realtimeEvents: {} as Partial<Record<EventType, RealtimeEvent[]>>,
+  tracks: null as TrackData | null,
   aurora: null as any,
   solarWind: null as any,
   realtimeSummary: null as any,
@@ -23,6 +26,9 @@ const state = reactive({
   showFlights: false,
   showStorms: false,
   showCme: false,
+  showDisasters: false,
+  showFires: false,
+  showTracks: false,
   showAurora: true,
   showSolarWind: false,
   showJet: false,
@@ -44,16 +50,21 @@ const state = reactive({
   frameDataRev: 0,
   stations: [] as Station[],
   selected: null as Sample | null,
+  /** Per-lead sample series for the last picked point (forecast card). */
+  forecast: null as { lon: number; lat: number; points: Array<{ validTime: string; sample: Sample }> } | null,
   /** Set by a direct raycaster pick on a station marker. */
   focusedStationId: '' as string,
+  focusedEvent: null as { source: EventType; id: string } | null,
   /** Set by the location bar; GlobeView watches and focuses the globe. */
   focusRequest: null as { lon: number; lat: number; distance?: number } | null,
   savedRegions: [] as Array<{ name: string; lon: number; lat: number; distance?: number }>,
   hoverLon: 0 as number,
   playing: false,
   speed: 1,
-  particleCount: 8000,
+  particleCount: 16000,
   showParticles: true,
+  useGpuWind: true,
+  showTrails: true,
   showField: true,
   showStations: true,
   layerOpacity: 0.5,
@@ -62,6 +73,7 @@ const state = reactive({
   // visual effects
   nightLights: 0.7,
   cloudStrength: 0.35,
+  cinematicGrade: true,
   bloom: true,
   bloomStrength: 0.85,
   hdTiles: false,
@@ -102,7 +114,7 @@ export const store = {
       state.mode = health.mode
       state.status = health.mode === 'fixture' ? '演示模式：使用内置样本' : '在线模式'
       const layers = await api.layers()
-      state.layers = layers.layers
+      state.layers = sortLayers(layers.layers)
       const preferred = ['wind10', 'temp2m']
       state.activeLayerId = preferred.find(id => layers.layers.some(l => l.layer_id === id)) || layers.layers[0]?.layer_id || ''
       try { state.sources = (await api.sources()).sources } catch { /* ignore */ }
@@ -126,6 +138,7 @@ export const store = {
       const res = await api.frames(id)
       if (token !== loadToken) return
       state.frames = res.frames
+      state.forecast = null
       state.missingTimes = res.missing_times || []
       if (state.frames.length) await this.loadFrameData(state.frames[0].frame_id)
     } catch (e: any) {
@@ -192,6 +205,25 @@ export const store = {
     } catch (e: any) {
       state.apiError = e.message || String(e)
     }
+    await this.updateForecast(lon, lat)
+  },
+
+  /** Fetch the picked point across every available forecast lead so the
+   *  detail panel can draw a 72h-style time series for the active layer. */
+  async updateForecast(lon: number, lat: number) {
+    const frames = state.frames.slice(0, 24)
+    if (!frames.length) { state.forecast = null; return }
+    try {
+      const samples = await Promise.all(
+        frames.map(f => api.sample(f.frame_id, lon, lat)),
+      )
+      state.forecast = {
+        lon, lat,
+        points: samples.map((s, i) => ({ validTime: frames[i].valid_time, sample: s })),
+      }
+    } catch {
+      state.forecast = null
+    }
   },
 
   async loadStations() {
@@ -215,6 +247,7 @@ export const store = {
       state.aurora = d.aurora
       state.solarWind = d.wind
       state.realtimeSummary = d.summary
+      state.tracks = d.tracks
       state.realtimeUpdatedAt = d.updatedAt
     } catch { /* real-time layers are optional; keep last good data */ }
   },

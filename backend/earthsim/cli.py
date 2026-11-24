@@ -11,7 +11,7 @@ from pathlib import Path
 from .config import get_settings, REPO_ROOT
 from .catalog import repository as repo
 from .fields.timeutil import to_iso
-from .ingest import fixtures, gfs, metar, dem
+from .ingest import disasters, fixtures, gfs, metar, dem
 
 
 def cmd_doctor(args) -> int:
@@ -71,14 +71,20 @@ def cmd_sources(args) -> int:
             result["metar"] = f"error: {e}"
         print(json.dumps(result, ensure_ascii=False, indent=2))
     elif args.action == "refresh":
-        from .ingest import hrrr, ifs, realtime, volume
+        from .ingest import cams, gefs, hrrr, ifs, oisst, realtime, volume, wave
         fn = {"noaa_gfs": gfs.refresh,
               "hrrr": hrrr.refresh, "ecmwf_ifs": ifs.refresh,
               "gfs_volume": volume.refresh,
+              "noaa_wave": wave.refresh,
+              "noaa_oisst": oisst.refresh,
+              "cams": cams.refresh,
+              "noaa_gefs": gefs.refresh,
               "awc_metar": metar.refresh,
               "usgs_quake": realtime.refresh_quakes, "opensky": realtime.refresh_flights,
               "nhc_storm": realtime.refresh_storms, "nasa_cme": realtime.refresh_cme,
               "noaa_aurora": realtime.refresh_aurora, "noaa_solar_wind": realtime.refresh_solar_wind,
+              "gdacs": disasters.refresh_gdacs, "eonet": disasters.refresh_eonet,
+              "nasa_firms": disasters.refresh_firms,
               "realtime_all": realtime.refresh}.get(args.source)
         if not fn:
             print(f"unknown source {args.source}", file=sys.stderr)

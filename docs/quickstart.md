@@ -54,12 +54,21 @@ curl -fsS http://localhost:8080/api/v1/health
   python -m earthsim.cli sources refresh --source gfs_volume
   python -m earthsim.cli sources refresh --source ecmwf_ifs
   python -m earthsim.cli sources refresh --source realtime_all
+python -m earthsim.cli sources refresh --source gdacs
+python -m earthsim.cli sources refresh --source eonet
+python -m earthsim.cli sources refresh --source noaa_wave
+python -m earthsim.cli sources refresh --source noaa_oisst
+# CAMS 全球大气成分（受上游配额限制，可稍后复跑）
+python -m earthsim.cli sources refresh --source cams
+python -m earthsim.cli sources refresh --source noaa_gefs
+# 可选：设置 EARTHSIM_FIRMS_MAP_KEY 后刷新 NASA FIRMS 全球火点
+python -m earthsim.cli sources refresh --source nasa_firms
   ```
 
 - 429/503 使用有界退避与 Retry-After；批次不完整只写候选，活动快照不切换。
 - 新鲜度：`GET /api/v1/data-status` 给出每源 state（live/stale/missing）、fresh、age_minutes；
   界面左侧「实时数据源」列出各数据集状态与时间戳，并汇总实时事件（Kp、太阳风、Bz）。
-- 实时事件开关：极光、太阳风、地震、航班、气旋、CME，数据每 60s 自动刷新。
+- 实时事件开关：极光、太阳风、地震、航班、气旋、CME，以及 GDACS/EONET 全球灾害、FIRMS 火点、全球气旋轨迹；数据每 60s 自动刷新。
 
 ## 4. 常见诊断
 
@@ -90,11 +99,11 @@ curl -fsS http://localhost:8080/api/v1/health
 
 ```bash
 # 后端（backend/ 目录，fixture 模式）
-$env:EARTHSIM_DATA_MODE='fixture'; python -m pytest -q     # 20 passed
+$env:EARTHSIM_DATA_MODE='fixture'; python -m pytest -q     # 36 passed
 
 # 前端
 cd apps/web
-npm test -- --run       # 3 passed
+npm test -- --run       # 19 passed
 npm run build           # vue-tsc + vite
 ```
 
