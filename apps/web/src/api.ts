@@ -79,6 +79,19 @@ export interface Buoy {
   values: Record<string, number | null>
 }
 
+export interface DisasterPolygon {
+  event_id: string
+  event_type: string
+  event_class: string
+  name: string
+  alert_level: string
+  alert_color: string
+  description: string
+  report_url: string
+  rings: number[][][]
+  received_at?: string
+}
+
 export interface AirStation {
   station_id: string
   lon: number
@@ -123,6 +136,8 @@ export const api = {
       // the station layer must only show METAR reports.
       source_id: 'awc_metar',
     })}`),
+  gdacsPolygons: () => get<{ polygons: DisasterPolygon[]; events: number; received_at: string | null }>(
+    '/api/v1/realtime/gdacs/polygons'),
   airQuality: () => get<{ stations: AirStation[]; count: number; note: string }>(
     '/api/v1/obs/air-quality'),
   lightning: () => get<{ strikes: LightningStrike[]; count: number; note: string }>(

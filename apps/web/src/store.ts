@@ -1,6 +1,6 @@
 /** Central reactive store. Vue state stays separate from the Three.js loop. */
 import { reactive, computed } from 'vue'
-import { api, type Layer, type Frame, type Sample, type Station, type Buoy, type LightningStrike, type AirStation } from './api'
+import { api, type Layer, type Frame, type Sample, type Station, type Buoy, type LightningStrike, type AirStation, type DisasterPolygon } from './api'
 import { sortLayers } from './layerOrder'
 import type { GridInfo } from './earth'
 import type { VolumeData } from './render/types'
@@ -63,6 +63,9 @@ const state = reactive({
   showLightning: false,
   airQuality: [] as AirStation[],
   showAirQuality: false,
+  disasterPolygons: [] as DisasterPolygon[],
+  showDisasterPolygons: false,
+  focusedDisasterId: '',
   focusedAirStationId: '',
   /** Set by the location bar; GlobeView watches and focuses the globe. */
   focusRequest: null as { lon: number; lat: number; distance?: number } | null,
@@ -119,6 +122,17 @@ export const store = {
   focusedBuoy: computed(() => state.buoys.find(b => b.station_id === state.focusedBuoyId) || null),
   focusedAirStation: computed(() => state.airQuality.find(
     s => s.station_id === state.focusedAirStationId) || null),
+  focusedDisaster: computed(() => state.disasterPolygons.find(
+    p => p.event_id === state.focusedDisasterId) || null),
+
+  async loadDisasterPolygons() {
+    try {
+      const res = await api.gdacsPolygons()
+      state.disasterPolygons = res.polygons
+    } catch {
+      state.disasterPolygons = []
+    }
+  },
 
   async loadAirQuality() {
     try {

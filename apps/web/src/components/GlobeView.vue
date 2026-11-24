@@ -291,6 +291,21 @@ function onPointerUp(event: PointerEvent) {
         }
       }
     }
+    // GDACS impact polygon (approximate via first ring vertex).
+    store.state.focusedDisasterId = ''
+    if (store.state.showDisasterPolygons && store.state.disasterPolygons.length) {
+      const nearPoly = store.state.disasterPolygons.map(p => {
+        const pt = p.rings?.[0]?.[0] || [0, 0]
+        return { p, d: Math.hypot(pt[0] - hit.lon,
+          (pt[1] - hit.lat) / Math.max(0.2, Math.cos(hit.lat * Math.PI / 180))) }
+      }).sort((a, z) => a.d - z.d)[0]
+      if (nearPoly && nearPoly.d < 8) {
+        store.state.focusedDisasterId = nearPoly.p.event_id
+        if (!store.state.focusedBuoyId && !store.state.focusedAirStationId) {
+          hud.value = `${nearPoly.p.alert_level} ${nearPoly.p.event_class} · ${nearPoly.p.name}`
+        }
+      }
+    }
     store.queryPoint(hit.lon, hit.lat)
   }
 }
@@ -369,6 +384,10 @@ onMounted(async () => {
   })
   renderer.setLightningVisible(store.state.showLightning)
   renderer.setAirQualityVisible(store.state.showAirQuality)
+  renderer.setDisasterPolygonsVisible(store.state.showDisasterPolygons)
+  if (store.state.showDisasterPolygons) {
+    store.loadDisasterPolygons().then(() => renderer?.setDisasterPolygons(store.state.disasterPolygons))
+  }
   if (store.state.showAirQuality) {
     store.loadAirQuality().then(() => renderer?.setAirQuality(store.state.airQuality))
   }
@@ -506,6 +525,11 @@ watch(() => store.state.showAirQuality, (v) => {
   if (v) store.loadAirQuality().then(() => renderer?.setAirQuality(store.state.airQuality))
 })
 watch(() => store.state.airQuality, v => renderer?.setAirQuality(v))
+watch(() => store.state.showDisasterPolygons, (v) => {
+  renderer?.setDisasterPolygonsVisible(v)
+  if (v) store.loadDisasterPolygons().then(() => renderer?.setDisasterPolygons(store.state.disasterPolygons))
+})
+watch(() => store.state.disasterPolygons, v => renderer?.setDisasterPolygons(v))
 watch(() => store.state.showSolarWind, v => renderer?.setSolarWindVisible(v))
 watch(() => store.state.showLightning, (v) => {
   renderer?.setLightningVisible(v)

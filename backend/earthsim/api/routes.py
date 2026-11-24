@@ -437,6 +437,13 @@ def realtime_fires(limit: int = 6000) -> dict:
     return {**status, "count": min(len(rows), limit), "fires": rows[:limit]}
 
 
+@router.get("/realtime/gdacs/polygons")
+def gdacs_polygons() -> dict:
+    """Official GDACS impact polygons (GeoJSON rings) with alert levels."""
+    from ..ingest import gdacs
+    return gdacs.read_polygons()
+
+
 @router.get("/realtime/summary")
 def realtime_summary() -> dict:
     """Compact overview of every real-time feed for UI status."""

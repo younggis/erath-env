@@ -44,6 +44,7 @@ const label: Record<string, string> = { forecast: '全球预报', fixture: '演�
     <label class="row"><span>海洋浮标 (NDBC)</span><input type="checkbox" v-model="store.state.showBuoys" /></label>
     <label class="row"><span>⚡ 实时闪电 (Blitzortung)</span><input type="checkbox" v-model="store.state.showLightning" /></label>
     <label class="row"><span>空气质量站 (OpenAQ)</span><input type="checkbox" v-model="store.state.showAirQuality" /></label>
+    <label class="row"><span>灾害影响范围 (GDACS)</span><input type="checkbox" v-model="store.state.showDisasterPolygons" /></label>
     <label class="row"><span>局部地形 (DEM)</span><input type="checkbox" v-model="store.state.showTerrain" /></label>
     <label class="row col" v-if="store.state.showTerrain"><span>地形夸张 <b>×{{ store.state.terrainExaggeration }}</b></span>
       <input type="range" min="0.5" max="8" step="0.5" v-model.number="store.state.terrainExaggeration" /></label>

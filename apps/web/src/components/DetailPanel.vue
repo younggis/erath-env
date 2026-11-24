@@ -23,6 +23,12 @@ const station = computed(() => {
   })).sort((a, b) => a.d - b.d)[0]
   return near && near.d < 2 ? near.st : null
 })
+const disaster = computed(() => store.focusedDisaster.value)
+const disasterArea = computed(() => {
+  const p = disaster.value
+  if (!p) return 0
+  return p.rings.reduce((sum, ring) => sum + Math.max(0, ring.length - 1), 0)
+})
 const airStation = computed(() => store.focusedAirStation.value)
 const buoy = computed(() => store.focusedBuoy.value)
 const buoyRows = computed(() => {
@@ -145,6 +151,18 @@ const valFmt = (v: number | null) => v === null ? '—' : (Math.abs(v) >= 100 ? 
       </div>
       <div class="fc-list">
         <div v-for="(p, i) in forecastPoints" :key="i"><span>{{ timeLabel(p.time) }}</span><b>{{ valFmt(p.value) }} {{ p.unit }}</b></div>
+      </div>
+    </div>
+
+    <div class="block" v-if="disaster">
+      <div class="eyebrow">GDACS DISASTER ALERT</div>
+      <h3>{{ disaster.name || disaster.event_class }}</h3>
+      <div class="kv"><span>告警等级</span><b :style="{ color: disaster.alert_color }">{{ disaster.alert_level }}</b></div>
+      <div class="kv"><span>灾种</span><b>{{ disaster.event_class }} ({{ disaster.event_type }})</b></div>
+      <div class="kv"><span>影响范围</span><b>{{ disaster.rings.length }} 个多边形 · {{ disasterArea }} 段边界</b></div>
+      <p class="sub" v-if="disaster.description">{{ disaster.description }}</p>
+      <div class="kv" v-if="disaster.report_url">
+        <a :href="disaster.report_url" target="_blank" rel="noopener">官方报告 ↗</a>
       </div>
     </div>
 

@@ -193,35 +193,9 @@ def timeline_points(items: Any, received: str) -> list[dict]:
 
 
 def refresh_gdacs() -> dict:
-    src = "gdacs"
-    try:
-        received = to_iso(datetime.now(timezone.utc))
-        data = _get_json(GDACS_URL)
-        rows = gdacs_rows(data, received)
-        if not rows:
-            raise IngestError("NO_EVENTS", "GDACS 未返回灾害事件")
-        repo.insert_observations(rows)
-        repo.delete_observations_before([src], to_iso(
-            datetime.now(timezone.utc) - timedelta(days=14)))
-
-        tracks = []
-        current = [f for f in data.get("features") or []
-                   if (f.get("properties") or {}).get("eventtype") == "TC"
-                   and str((f.get("properties") or {}).get("iscurrent")).lower() == "true"]
-        for feature in current[:MAX_TRACK_STORMS]:
-            try:
-                track = _gdacs_track(feature, received)
-                if track:
-                    tracks.append(track)
-            except Exception as e:  # noqa: BLE001 - one bad storm must not fail the feed
-                log.warning("GDACS 轨迹获取失败：%s", e)
-        _write_realtime("gdacs_tracks.json", {"tracks": tracks, "received_at": received})
-        mark_success(src, {"events": len(rows), "tracks": len(tracks)})
-        return {"ok": True, "events": len(rows), "tracks": len(tracks)}
-    except Exception as e:  # noqa: BLE001
-        err = e if isinstance(e, IngestError) else IngestError("FETCH_FAILED", str(e))
-        mark_failure(src, err)
-        return {"ok": False, "error": err.code}
+    # Polygon-aware adapter also publishes point events and cyclone tracks.
+    from . import gdacs
+    return gdacs.refresh()
 
 
 # --------------------------------------------------------------------------- EONET
