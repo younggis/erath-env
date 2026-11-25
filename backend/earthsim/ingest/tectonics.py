@@ -1,7 +1,7 @@
 """Tectonic plate boundary GeoJSON (fraxen/tectonicplates, public domain).
 
-A simplified GeoJSON is bundled in the package so the layer works fully
-offline / in fixture mode; the API serves it with ETag revalidation.
+A simplified GeoJSON is bundled in the package so the layer works offline;
+the API serves it with ETag revalidation.
 """
 from __future__ import annotations
 

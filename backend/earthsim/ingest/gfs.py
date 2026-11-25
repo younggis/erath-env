@@ -52,7 +52,7 @@ FIELD_MAP: dict[str, tuple[tuple[str, ...], str, float]] = {
     # 500 hPa wind (already present in the 500mb subset) — upper-air ribbon source.
     "wind500": (("u", "v"), "isobaricInhPa", 500),
 }
-# Per-layer display metadata (unit, level, palette) — independent of fixtures.
+# Per-layer display metadata (unit, level, palette) — independent of source.
 LAYER_META: dict[str, dict] = {
     "wind10": {"level": {"type": "height_agl", "value": 10, "unit": "m"}, "fields": [{"id": "u", "unit": "m/s"}, {"id": "v", "unit": "m/s"}]},
     "temp2m": {"level": {"type": "height_agl", "value": 2, "unit": "m"}, "fields": [{"id": "temp", "unit": "K"}]},

@@ -18,7 +18,7 @@ from ..fields import grid as gmod
 from ..fields.timeutil import normalize_lat, normalize_lon, parse_iso, to_iso
 from ..fields.wind import describe_wind
 from ..fields.units import kelvin_to_c, pa_to_hpa
-from ..ingest import gfs as gfs_adapter, metar, dem, fixtures
+from ..ingest import gfs as gfs_adapter, metar, dem
 from .schemas import SampleResponse
 
 router = APIRouter(prefix="/api/v1")
@@ -78,7 +78,7 @@ def _info(layer_id: str) -> dict:
     if layer_id in LAYER_INFO:
         return LAYER_INFO[layer_id]
     return {"label": layer_id, "unit": "", "display_unit": "", "palette": "grayscale",
-            "kind": "fixture", "layer_type": "scalar"}
+            "kind": "forecast", "layer_type": "scalar"}
 
 
 def _error(code: str, message: str, status: int, details: dict | None = None):
@@ -94,8 +94,7 @@ class ApiError(Exception):
 # --------------------------------------------------------------------------- health
 @router.get("/health")
 def health() -> dict:
-    s = get_settings()
-    return {"status": "ok", "version": "1.0.0", "mode": s.data_mode,
+    return {"status": "ok", "version": "1.0.0",
             "catalog": str(db_path()), "time": to_iso(datetime.now(timezone.utc))}
 
 
@@ -104,12 +103,12 @@ def sources(include_disabled: bool = False) -> dict:
     rows = repo.get_sources()
     if not include_disabled:
         rows = [r for r in rows]
-    return {"sources": rows, "mode": get_settings().data_mode}
+    return {"sources": rows}
 
 
 @router.get("/data-status")
 def data_status() -> dict:
-    """Live-vs-demo / freshness assessment for every dataset."""
+    """Freshness assessment for every dataset."""
     from ..freshness import assess
     return assess()
 
@@ -304,7 +303,7 @@ def layers(mode: str | None = None, snapshot_id: str | None = None) -> dict:
             times = sorted(f["valid_time"] for f in fs)
             out.append({
                 "layer_id": layer_id, "label": info["label"], "kind": kind,
-                "source_kind": act["kind"], "source_id": act["source_id"],
+                "source_id": act["source_id"],
                 "attribution": act["attribution"], "license_url": act["license_url"],
                 "unit": info["unit"], "display_unit": info["display_unit"],
                 "palette": info["palette"], "layer_type": info["layer_type"],
@@ -313,28 +312,21 @@ def layers(mode: str | None = None, snapshot_id: str | None = None) -> dict:
                 "frame_count": len(fs),
                 "state": "published",
             })
-    if get_settings().data_mode == "live":
-        # In live mode hide demonstration layers entirely so the UI never
-        # presents simulated data as if it were real.
-        out = [item for item in out if item["source_kind"] != "fixture"]
-        best: dict[str, dict] = {}
-        for item in out:
-            cur = best.get(item["layer_id"])
-            if cur is None or (cur["source_kind"] == "fixture" and item["source_kind"] != "fixture"):
-                best[item["layer_id"]] = item
-        out = list(best.values())
-    order = {"forecast": 0, "fixture": 1}
-    out.sort(key=lambda x: (order.get(x["kind"], 9), x["layer_id"]))
-    return {"layers": out, "mode": get_settings().data_mode}
+    # One entry per layer: prefer a genuine forecast over other kinds.
+    best: dict[str, dict] = {}
+    for item in out:
+        cur = best.get(item["layer_id"])
+        if cur is None or (cur["kind"] != "forecast" and item["kind"] == "forecast"):
+            best[item["layer_id"]] = item
+    out = list(best.values())
+    out.sort(key=lambda x: (0 if x["kind"] == "forecast" else 1, x["layer_id"]))
+    return {"layers": out}
 
 
 def _active_for_layer(layer_id: str, snapshot_id: str | None) -> str | None:
     if snapshot_id:
         return snapshot_id
-    acts = _active_snapshots()
-    if get_settings().data_mode == "live":
-        acts.sort(key=lambda a: 0 if a["kind"] != "fixture" else 1)
-    for act in acts:
+    for act in _active_snapshots():
         if repo.list_frames(layer_id, snapshot_id=act["snapshot_id"], limit=1):
             return act["snapshot_id"]
     return None
@@ -452,8 +444,8 @@ def sample(frame_id: str, lon: float, lat: float) -> dict:
     return {"frame_id": frame_id, "lon": lon, "lat": lat, "valid_time": f["valid_time"],
             "values": out, "sampling_method": method,
             "quality": {"in_bounds": method != "out_of_bounds", "has_missing": any(v is None for v in vals),
-                        "source_kind": manifest.get("kind", "")},
-            "source_kind": manifest.get("kind", ""), "note": note}
+                        "kind": manifest.get("kind", "")},
+            "kind": manifest.get("kind", ""), "note": note}
 
 
 @router.get("/stations")

@@ -29,7 +29,7 @@ function togglePlay() { store.state.playing = !store.state.playing }
       </div>
     </div>
     <div class="tl-meta">
-      <span class="tag">{{ store.activeLayer.value?.source_kind === 'fixture' ? '演示' : '全球预报' }}</span>
+      <span class="tag">全球预报</span>
       <span>{{ store.activeLayer.value?.attribution || '—' }}</span>
       <span v-if="store.state.missingTimes.length" class="gaps" :title="store.state.missingTimes.join('\n')">⚠ {{ store.state.missingTimes.length }} 个缺帧</span>
     </div>

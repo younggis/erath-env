@@ -1,7 +1,7 @@
 """Global Holocene volcano catalogue (Smithsonian / NOAA NCEI, public).
 
 A cleaned static asset is bundled in the package so the 3D volcano layer works
-offline / in fixture mode. `last_year` is derived from the Smithsonian era code
+offline. `last_year` is derived from the Smithsonian era code
 and is an approximate midpoint, not an exact eruption date.
 """
 from __future__ import annotations

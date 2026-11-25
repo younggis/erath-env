@@ -58,7 +58,6 @@ def _env(name: str, default: Any, cast: type) -> Any:
 
 @dataclass
 class Settings:
-    data_mode: str = "fixture"
     http_port: int = 8080
     server_host: str = "127.0.0.1"
     ui_timezone: str = "local"
@@ -127,7 +126,6 @@ class Settings:
         sto = toml.get("storage", {})
 
         s = cls(
-            data_mode=str(g("EARTHSIM_DATA_MODE", "fixture", str)),
             http_port=int(g("EARTHSIM_HTTP_PORT", srv.get("port", 8080), int)),
             server_host=str(g("EARTHSIM_HOST", srv.get("host", "127.0.0.1"), str)),
             ui_timezone=str(g("EARTHSIM_UI_TIMEZONE", "local", str)),
@@ -166,7 +164,6 @@ class Settings:
             http_timeout_seconds=int(g("EARTHSIM_HTTP_TIMEOUT", ing.get("http_timeout_seconds", 30), int)),
             max_download_bytes=int(g("EARTHSIM_MAX_DOWNLOAD_BYTES", ing.get("max_download_bytes", 268435456), int)),
         )
-        s.data_mode = s.data_mode.strip().lower()
         return s
 
     def resolve_data_root(self) -> Path:
@@ -180,7 +177,7 @@ class Settings:
             candidate = REPO_ROOT / self.local_data_dir
         candidate = candidate.expanduser().resolve()
         candidate.mkdir(parents=True, exist_ok=True)
-        for sub in ("catalog", "raw", "derived", "fixtures", "tmp"):
+        for sub in ("catalog", "raw", "derived", "tmp"):
             (candidate / sub).mkdir(parents=True, exist_ok=True)
         self.data_root = candidate
         return candidate

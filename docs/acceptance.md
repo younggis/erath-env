@@ -9,12 +9,12 @@
 
 | 编号 | 验收项 | 状态 | 证据 |
 |---|---|---|---|
-| AC-01 | 全新环境启动 | 通过 | Quick Start 可执行；`GET /api/v1/health` 返回 ok；`fixture` 模式浏览器显示「● 演示」+ 风场 + 时间轴 + 定位栏（`docs/shots/01-home.png`） |
+| AC-01 | 全新环境启动 | 通过 | Quick Start 可执行；`GET /api/v1/health` 返回 ok；浏览器显示「● 在线」+ 风场 + 时间轴 + 定位栏（`docs/shots/01-home.png`） |
 | AC-02 | 获取真实 GFS | 通过 | 真实批次解码发布；东京点查 u=4.11 m/s、temp2m 291.66K→18.51°C；字段扩展至 12+ 类 |
 | AC-03 | 批次更新与回退 | 通过 | 不完整候选不切活动快照；旧 init 不覆盖新批次；补齐后单事务切换（`tests/test_catalog.py`） |
 | AC-04 | 点位查询与地球格网 | 通过 | `tests/test_fields.py` + 前端 `earth.test.ts`；已知样点数值在容差内；跨 180° 连续；缺测点提示正确 |
-| AC-05 | 持久缓存与回放 | 通过 | 资产校验全部通过；断网 fixture 回放；前端 LRU 淘汰；CLI cleanup 保护活动批次 |
-| AC-06 | 图层与数据源标注 | 通过 | 20 个 forecast 图层；live 过滤 fixture；来源新鲜度（live/stale/missing + age）在左侧显示 |
+| AC-05 | 持久缓存与回放 | 通过 | 资产校验与 SHA-256 一致；已发布批次可回放；前端 LRU 淘汰；CLI cleanup 保护活动批次 |
+| AC-06 | 图层与数据源标注 | 通过 | 20 个 forecast 图层；来源新鲜度（live/stale/missing + age）在左侧显示 |
 | EXT-01 | ECMWF IFS 模式对比 | 通过 | 95MB 已下载解码发布；15 个 surface 字段在线验证；云量分数→% 修正、f000 全零累积字段跳过 |
 | EXT-02 | 3D 体积云 | 通过 | GFS 6 层 RH → 360×181×6 体数据；WebGL2 raymarching；4 时效；密度滑块生效；诚实标注「非真实云水」（`volume-cloud.png`） |
 | EXT-03 | HRRR 高分辨率 LOD | 通过 | 3km CONUS 区域场重建经纬度并以 bbox 贴片叠加；放大到美国显示「◆ 高分辨率数据 3 km」（`coord-hrrr-us.png`、`diag-lod-hrrr.png`） |
@@ -26,7 +26,7 @@
 | EXT-09 | GFS-Wave 全球海浪 | 通过 | NOMADS 0.25° 三层字段 1.8MB/时效实测下载解码；发布 4 图层 × 4 时效；波高驱动海面高光/泡沫，波向驱动粒子；浏览器验证 24 图层、无 JS 错误（`wave-ocean-check.png`） |
 | EXT-10 | 体积云与大气质感 | 通过 | 体积云加入蓝噪声抖动、自适应步数、向光自阴影、HG 前向散射；大气边缘加入臭氧与 Mie 前向散射；浏览器切换 `cloud_volume` 验证无 JS 错误（`cloud-v2-check.png`） |
 | EXT-11 | OISST 全球日海温 | 通过 | NCEI ERDDAP 1MB NetCDF3 实测下载解码；滚转经度、掩膜哨兵并发布 `sst` 图层；浏览器验证（当时 25 图层，现为 30）、观测时刻 2026-11-07、无 JS 错误（`oisst-check.png`）；上游约两周滞后已标注 |
-| EXT-12 | CAMS 全球大气成分 | 部分（上游限流） | 适配器、5° 采样、格网解码、3 图层注册与缓存机制通过 fixture 测试；本机 Open-Meteo IP 配额触发 429，真实发布待配额恢复/目标机复跑；明确标注为 CAMS 0.4° 的 5° 降采样 |
+| EXT-12 | CAMS 全球大气成分 | 部分（上游限流） | 适配器、5° 采样、格网解码、3 图层注册与缓存机制通过单元测试；本机 Open-Meteo IP 配额触发 429，真实发布待配额恢复/目标机复跑；明确标注为 CAMS 0.4° 的 5° 降采样 |
 | EXT-13 | GEFS 集合不确定性 | 通过 | `geavg`/`gespr` 0.5° 子集实测下载解码；5 图层 × 3 时效发布；概率图层明确为高斯近似；浏览器验证 30 图层、无 JS 错误（`gefs-prob-check.png`） |
 | EXT-14 | GPU 风场粒子 | 通过 | WebGL2 + `EXT_color_buffer_float` ping-pong 状态纹理，CPU 不再逐帧遍历粒子；GLSL 短拖尾粒子按风速着色；开关切换 CPU/GPU 互斥可见；浏览器实测 `supported=true`、默认 16000 粒子 160+ FPS、双帧画面差分确认粒子持续运动、关闭后回退 CPU（上限 8000），无 JS 错误（`gpu-wind-check.png`、`motion-diff.png`） |
 | EXT-15 | 风场拖尾光带 | 通过 | 粒子状态累积到半分辨率 ping-pong 缓冲形成连续光带；背面粒子顶点剔除、相机移动时快速衰减；浏览器实测开关正常、160+ FPS、无 JS 错误（`trails-check.png`） |
@@ -40,8 +40,8 @@
 ## 2. 验证命令与结果（2026-11-24）
 
 ```bash
-# 后端（backend/ 目录，fixture 模式）
-$env:EARTHSIM_DATA_MODE='fixture'; python -m pytest -q     # 36 passed
+# 后端（backend/ 目录）
+python -m pytest -q
 
 # 前端
 cd apps/web
@@ -49,15 +49,14 @@ npm test -- --run       # 19 passed
 npm run build           # 通过（vue-tsc + vite）
 
 # 资产
-python -m earthsim.cli fixtures verify                     # 全部资产校验通过
 python -m earthsim.cli catalog stats                       # 目录统计
 ```
 
 在线 API 实测：
 
-- `GET /api/v1/health` → `status=ok`，`mode=live`。
+- `GET /api/v1/health` → `status=ok`。
 - `GET /api/v1/layers` → 30 个图层，全部 `kind=forecast`，无 WRF / 卫星图层。
-- `GET /api/v1/sources` → 19 个 source_id：`awc_metar`、`cams`、`demo`、`ecmwf_ifs`、`eonet`、
+- `GET /api/v1/sources` → 18 个 source_id：`awc_metar`、`cams`、`ecmwf_ifs`、`eonet`、
   `gdacs`、`gfs_volume`、`nasa_cme`、`nasa_firms`、`nhc_storm`、`noaa_aurora`、`noaa_gefs`、
   `noaa_gfs`、`noaa_hrrr`、`noaa_oisst`、`noaa_solar_wind`、`noaa_wave`、`opensky`、`usgs_quake`。
 - `GET /api/v1/simulation/presets` → 404（确认区域模拟端点已移除）。
@@ -90,7 +89,7 @@ python -m earthsim.cli catalog stats                       # 目录统计
 
 ## 4. 遗留与边界（诚实声明）
 
-1. 真实 Copernicus DEM 瓦片未在本机下载验证；适配器与 fixture 已闭环，真实瓦片待目标机。
+1. 真实 Copernicus DEM 瓦片未在本机下载验证；适配器与单元测试已覆盖，真实瓦片待目标机。
 2. 性能目标（首屏 ≤3s、中位帧率 ≥30 FPS、点查 P95 ≤150ms）需在目标机按实际规格实测；无硬件加速时应自动降级。
 3. HRRR 仅覆盖美国本土；其他地区仍为 25km GFS。放大不会凭空产生更细的真实观测。
 4. 3D 体积云是多层相对湿度的可视化代理，**不是真实云水含量**，不做定量解释。

@@ -1,6 +1,6 @@
 # 地球环境模拟器 · Earth Environment Simulator
 
-本地运行的三维地球天气工作台：全球风、温、湿、压、云、降水、全球海浪、全球日海温、CAMS 沙尘/AOD/PM2.5、3D 体积云和机场观测，并实时显示地震/航班/气旋/极光/太阳风/CME，以及 GDACS 全球灾害、NASA EONET 自然事件和 FIRMS 全球火点；可点查任意位置数值。**默认 live 模式**，接入真实 NOAA GFS、ECMWF IFS、NOAA HRRR、AWC METAR 等数据；界面显示每个数据源的新鲜度，无可用数据时明确标注。设置 `EARTHSIM_DATA_MODE=fixture` 可切到全离线演示。区域物理模拟（WPS/WRF）与卫星云图图层已移除。
+本地运行的三维地球天气工作台：全球风、温、湿、压、云、降水、全球海浪、全球日海温、CAMS 沙尘/AOD/PM2.5、3D 体积云和机场观测，并实时显示地震/航班/气旋/极光/太阳风/CME，以及 GDACS 全球灾害、NASA EONET 自然事件和 FIRMS 全球火点；可点查任意位置数值。项目只接入真实数据（NOAA GFS、ECMWF IFS、NOAA HRRR、AWC METAR 等）；界面显示每个数据源的新鲜度，无可用数据时明确标注。区域物理模拟（WPS/WRF）与卫星云图图层已移除。
 
 目标环境：Windows 11 + Docker Desktop（WSL 2 后端）+ 本机浏览器；不依赖 Docker 也可在 Windows 本机直接运行 API/CLI。
 
@@ -14,15 +14,13 @@
 # Python 3.11+，需要 fastapi / uvicorn / pydantic / httpx / numpy / pytest
 python -m pip install -e . --no-deps        # 若依赖已存在
 python -m earthsim.cli doctor
-python -m earthsim.cli fixtures install
-python -m earthsim.cli fixtures verify
 
 # 启动 API（同时托管已构建的前端静态文件）
 cd backend
 python -m uvicorn earthsim.api.app:app --host 127.0.0.1 --port 8080
 ```
 
-浏览器打开 <http://localhost:8080>。首次进入即可看到风场与时间轴，界面右上角显示「● 演示」。
+浏览器打开 <http://localhost:8080>。首次进入即可看到风场与时间轴，界面右上角显示「● 在线」；若尚未采集数据，先运行下方 sources refresh。
 
 ### 1.2 Docker Compose（完整形态）
 
@@ -35,11 +33,9 @@ docker compose up -d --build
 
 curl -fsS http://localhost:8080/api/v1/health
 docker compose exec api python -m earthsim.cli doctor
-docker compose exec api python -m earthsim.cli fixtures install
-docker compose exec api python -m earthsim.cli fixtures verify
 ```
 
-开启 live 采集：把 `.env` 中 `EARTHSIM_DATA_MODE` 改为 `live`，然后 `docker compose up -d`（重建受影响容器）：
+启动真实数据采集：
 
 ```bash
 docker compose exec ingest-worker python -m earthsim.cli sources probe
@@ -75,13 +71,12 @@ backend/earthsim/  FastAPI、SQLite 目录、采集适配、格网采样、实�
   api/             路由、响应模型、静态托管
   catalog/         WAL 迁移、目录与发布事务
   fields/          格网、单位、风与时间约定
-  ingest/          GFS / IFS / HRRR / 体积云 / METAR / DEM / fixtures / 实时事件
-  cli.py           doctor/fixtures/sources/catalog
+  ingest/          GFS / IFS / HRRR / 体积云 / METAR / DEM / 实时事件
+  cli.py           doctor/sources/catalog
   worker.py        定时采集
 config/            defaults.toml
 deploy/            Dockerfile.app
 docs/              数据来源、验收矩阵、操作说明
-fixtures/          由程序生成，见 ingest/fixtures.py（可重建）
 scripts/           连通性探测与验证辅助脚本
 compose.yaml / .env.example
 ```
@@ -93,7 +88,7 @@ catalog/catalog.sqlite3
 raw/gfs/<init>/<lead>/filter.grib2 ; raw/ifs/<init>/… ; raw/gfs-volume/<init>/…
 raw/metar/<fetch>.json ; raw/topography/…
 derived/<snapshot>/<frame>.bin|.png
-fixtures/  tmp/
+tmp/
 ```
 
 ---
@@ -102,19 +97,19 @@ fixtures/  tmp/
 
 | 能力 | 状态 | 说明 |
 |---|---|---|
-| 离线纵向切片（M1） | ✅ 已验证 | 程序生成样本 → 目录发布 → 地球/风粒子 → 时间轴 → 点查；断网可回放 |
+| 数据纵向切片（M1） | ✅ 已验证 | 真实数据接入 → 目录发布 → 地球/风粒子 → 时间轴 → 点查 |
 | GFS 采集（M2） | ✅ 真实解码与发布已验证（ecCodes 2.50.1；字段扩展后 f000 9→12+ 帧） | 图层已扩展至 10+ 类：10m风、2m温/湿/露点、海平面气压、能见度、降水、CAPE/CIN、雪深、地面气压、500hPa位势高度/垂直速度；其余字段可从同一 GRIB Filter 按需扩展 |
 | ECMWF IFS 接入（扩展） | ✅ 95MB 数据已下载解码发布，15 个 surface 字段在线验证通过 | 云分层/100m风/整层水汽/辐射等模式对比字段 |
 | GFS-Wave 全球海浪（扩展） | ✅ NOMADS 0.25° 波高/周期/波向 4 时效真实解码发布；浏览器可视化验证通过 | 新增 4 图层（有效波高、峰值周期、平均波向、传播矢量）；海面 shader 用真实波高增强高光/泡沫，粒子流由波向换算，已明确标注为可视化矢量 |
 | NOAA OISST 全球日海温（扩展） | ✅ ERDDAP 按日+2×2 降采样取 1MB NetCDF3，全球 0.5° 真实解码发布并浏览器验证 | `sst` 图层；上游 AVHRR-only 分析约滞后两周，界面标注观测时刻 |
-| CAMS 全球大气成分（扩展） | ⚠️ 适配器与 fixture 测试通过；本机 Open-Meteo IP 配额耗尽返回 429，真实发布待配额恢复 | AOD / 沙尘 / PM2.5，零值透明；明确标注为 CAMS 0.4° 的 5° 降采样可视化 |
+| CAMS 全球大气成分（扩展） | ⚠️ 适配器与单元测试通过；本机 Open-Meteo IP 配额耗尽返回 429，真实发布待配额恢复 | AOD / 沙尘 / PM2.5，零值透明；明确标注为 CAMS 0.4° 的 5° 降采样可视化 |
 | GEFS 集合不确定性（扩展） | ✅ `geavg`/`gespr` 0.5° 实测下载发布，5 图层 × 3 时效，浏览器验证通过 | 均值/离散度图层 + 风>10m/s 概率（高斯近似，非成员计数概率） |
 | 3D 体积云（扩展） | ✅ 6 层 RH → 体数据 raymarching，4 时效时间轴已验证 | 基于多层湿度的云密度代理（非真实云水） |
 | GPU 粒子流场（扩展） | ✅ WebGL2 ping-pong 浮点纹理，默认 16000 粒子（可调至 30000），浏览器实测 160+ FPS、无 JS 错误 | 粒子状态存于 GPU 纹理，CPU 不逐帧遍历；`EXT_color_buffer_float` 不可用时自动回退 CPU（上限 8000）；LayerPanel 可切换 |
 | 风场拖尾光带（扩展） | ✅ 粒子状态累积到半分辨率 ping-pong 缓冲，形成流动的青色光带；浏览器实测无 JS 错误（`trails-check.png`） | 背面粒子在顶点着色器剔除，避免穿透地球；相机移动时快速衰减防拖影；LayerPanel 可开关 |
 | 晨昏光照与电影调色（扩展） | ✅ 增强晨昏金色光带与夜面对比；后期加入暗角/轻色差/微颗粒；浏览器实测无 JS 错误（`cinematic-check.png`） | 调色在 `OutputPass` 之前的线性空间进行，不重复色调映射；顺带修复 `pow(负数,2.0)` 未定义行为；均可开关 |
 | 地点预报卡（扩展） | ✅ 点击地球并发拉取当前图层全部时效的点查结果，右侧详情面板绘制数值曲线；浏览器实测 4 时效、无 JS 错误（`forecast-card.png`） | 直接使用 `/api/v1/sample`，数据来自当前图层真实格网；切换图层时自动清空 |
-| METAR 接入（M2） | ✅ 真实 JSON 已取得并归一化（AWC 200，含 VRB/删失能见度处理） | 演示样本用于回放与缺字段测试 |
+| METAR 接入（M2） | ✅ 真实 JSON 已取得并归一化（AWC 200，含 VRB/删失能见度处理） | 站点标记与点查使用真实观测 |
 
 逐条 AC-01…AC-07 与 EXT-01…EXT-17 状态与证据见 [docs/acceptance.md](docs/acceptance.md)；数据来源与验证记录见 [docs/data-sources.md](docs/data-sources.md)。
 
@@ -124,11 +119,8 @@ fixtures/  tmp/
 
 ```bash
 # 后端（仓库根目录）
-set EARTHSIM_DATA_MODE=fixture
-python -m pytest -q                       # 36 项单元/集成测试
+python -m pytest -q                       # 单元/集成测试（自带最小测试数据）
 python -m earthsim.cli doctor
-python -m earthsim.cli fixtures install
-python -m earthsim.cli fixtures verify
 python -m earthsim.cli catalog stats
 python -m earthsim.cli sources refresh --source noaa_gfs
 python -m earthsim.cli sources refresh --source realtime_all
@@ -152,7 +144,7 @@ cd apps/web && npm test && npm run build
 - 真实昼夜：夜间灯光用 NASA Black Marble 真实纹理（非噪声马赛克）；太阳方向由 NOAA 天文算法按真实 UTC 每帧计算，晨昏线/海洋高光/昼夜分界真实反映地球状态。左侧可勾选是否跟随实时 UTC（取消则跟随图层数据时刻），并显示当前太阳直射点。
 - 高清卫星底图：左侧「高清卫星瓦片 (Esri)」开关启用动态 LOD 瓦片（双层 context+detail）。相机可贴近地表（minDistance≈2.006），贴地时中心达 z14 ≈ 7.8 m/像素，可见城市街区、道路、码头（见 `docs/shots/07-county-zoom.png`）。瓦片来自 NOAA Esri World Imagery，署名 Esri, Maxar, Earthstar Geographics；并发限流 3、内存缓存、边缘渐变。
 - 发布：候选批次先落盘校验，完整后在单事务里更新活动快照；失败保留上一批可用数据。
-- 模式：`live`（默认）访问真实上游并在启动时后台补采缺失/过期数据，UI 只显示真实图层；`fixture` 全离线并标「演示」。
+- 数据：只访问真实上游，启动时后台补采缺失/过期数据，UI 只显示真实图层；无演示/模拟模式。
 - 实时性：`GET /api/v1/data-status` 给出每源 state（live/stale/missing）、fresh、age_minutes 和时间戳；采集失败保留上一批可用数据。实时源含 GFS（NOMADS，约 4–5h 内新批次）、GFS-Wave 全球海浪、METAR（AWC，约 30min）、体积云、IFS，以及地震/航班/极光/太阳风/气旋/CME/GDACS/EONET/FIRMS 等事件数据。
 - 全球灾害：GDACS 与 EONET 按灾害类型和 250 km/72h 阈值去重，避免同一事件重复渲染；FIRMS 需设置免费 `EARTHSIM_FIRMS_MAP_KEY`，未配置时显示清晰诊断且 EONET 野火仍可用。
 

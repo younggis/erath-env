@@ -10,7 +10,6 @@ export interface GridData { values: Float32Array; grid: GridInfo; ncomp: number 
 
 const state = reactive({
   ready: false,
-  mode: 'fixture',
   apiError: '' as string,
   layers: [] as Layer[],
   sources: [] as any[],
@@ -246,9 +245,8 @@ export const store = {
 
   async init() {
     try {
-      const health = await api.health()
-      state.mode = health.mode
-      state.status = health.mode === 'fixture' ? '演示模式：使用内置样本' : '在线模式'
+      await api.health()
+      state.status = '在线模式'
       const layers = await api.layers()
       state.layers = sortLayers(layers.layers)
       const preferred = ['wind10', 'temp2m']
@@ -257,7 +255,7 @@ export const store = {
       try { state.dataStatus = await api.dataStatus() } catch { /* ignore */ }
       await Promise.all([this.selectLayer(state.activeLayerId), this.loadStations()])
       state.ready = true
-      state.status = state.mode === 'fixture' ? '演示数据已就绪 · 断网可回放' : '数据已就绪'
+      state.status = '数据已就绪'
     } catch (e: any) {
       state.apiError = e.message || String(e)
       state.status = `连接失败：${state.apiError}`
@@ -370,7 +368,7 @@ export const store = {
       // paired to the forecast valid time — otherwise all real stations get
       // filtered out because METAR reports are minutes old while the GFS
       // timeline sits hours ahead.
-      const maxAge = state.mode === 'fixture' ? 100000 : 180
+      const maxAge = 180
       const res = await api.stations(undefined, undefined, maxAge)
       state.stations = res.stations
     } catch (e: any) { state.apiError = e.message || String(e) }

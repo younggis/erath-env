@@ -11,7 +11,7 @@ from pathlib import Path
 from .config import get_settings, REPO_ROOT
 from .catalog import repository as repo
 from .fields.timeutil import to_iso
-from .ingest import disasters, fixtures, gfs, metar, dem
+from .ingest import disasters, gfs, metar, dem
 
 
 def cmd_doctor(args) -> int:
@@ -19,7 +19,6 @@ def cmd_doctor(args) -> int:
     root = s.data_root
     print("EarthSim doctor")
     print(f"  version         : 1.0.0")
-    print(f"  data mode       : {s.data_mode}")
     print(f"  repo root       : {REPO_ROOT}")
     print(f"  data root       : {root}")
     print(f"  free disk       : {shutil.disk_usage(str(root)).free / 1024**3:.1f} GiB")
@@ -46,18 +45,6 @@ def cmd_doctor(args) -> int:
     return 0
 
 
-def cmd_fixtures(args) -> int:
-    if args.action == "install":
-        result = fixtures.install_all()
-        print(json.dumps(result, ensure_ascii=False, indent=2))
-        print(f"fixtures installed into {get_settings().data_root}")
-    elif args.action == "verify":
-        result = fixtures.verify_all()
-        print(json.dumps(result, ensure_ascii=False, indent=2))
-        return 0 if result["ok"] else 1
-    return 0
-
-
 def cmd_sources(args) -> int:
     if args.action == "probe":
         result = {"gfs_cycle": None, "metar": None, "dem": "requires live run"}
@@ -66,7 +53,7 @@ def cmd_sources(args) -> int:
         except Exception as e:
             result["gfs_cycle"] = f"error: {e}"
         try:
-            result["metar"] = metar.refresh([m[0] for m in fixtures.STATIONS[:2]])
+            result["metar"] = metar.refresh(metar.DEFAULT_STATIONS[:2])
         except Exception as e:
             result["metar"] = f"error: {e}"
         print(json.dumps(result, ensure_ascii=False, indent=2))
@@ -151,7 +138,6 @@ def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="earthsim", description="Earth Environment Simulator CLI")
     sub = p.add_subparsers(dest="group")
     doctor = sub.add_parser("doctor"); doctor.set_defaults(func=cmd_doctor)
-    fx = sub.add_parser("fixtures"); fx.add_argument("action", choices=["install", "verify"]); fx.set_defaults(func=cmd_fixtures)
     src = sub.add_parser("sources")
     src.add_argument("action", choices=["probe", "refresh", "status"])
     src.add_argument("--source", default="noaa_gfs")

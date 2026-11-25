@@ -25,5 +25,5 @@ class SampleResponse(BaseModel):
     values: list[dict[str, Any]]
     sampling_method: str
     quality: dict[str, Any] = Field(default_factory=dict)
-    source_kind: str = ""
+    kind: str = ""
     note: str | None = None

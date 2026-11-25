@@ -7,7 +7,7 @@ const groups = computed(() => {
   for (const l of store.state.layers) (map[l.kind] ||= []).push(l)
   return Object.entries(map)
 })
-const label: Record<string, string> = { forecast: '全球预报', fixture: '演示数据' }
+const label: Record<string, string> = { forecast: '全球预报' }
 </script>
 
 <template>
@@ -17,7 +17,7 @@ const label: Record<string, string> = { forecast: '全球预报', fixture: '演�
         <div class="eyebrow">LAYERS</div>
         <h2>数据图层</h2>
       </div>
-      <span class="mode-chip" :class="store.state.mode">{{ store.state.mode === 'fixture' ? '演示' : '在线' }}</span>
+      <span class="mode-chip">在线</span>
     </div>
 
     <div v-for="[kind, layers] in groups" :key="kind" class="group">
@@ -131,9 +131,7 @@ const label: Record<string, string> = { forecast: '全球预报', fixture: '演�
 .panel-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 18px; }
 .eyebrow { font: 600 10px ui-monospace, monospace; letter-spacing: .18em; color: var(--accent); opacity: .7; }
 h2 { margin: 4px 0 0; font-size: 17px; font-weight: 650; letter-spacing: .02em; }
-.mode-chip { font-size: 10px; padding: 4px 8px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); }
-.mode-chip.fixture { color: #ffd479; border-color: rgba(255, 212, 121, .4); background: rgba(255, 212, 121, .08); }
-.mode-chip.live { color: #6ef0b4; border-color: rgba(110, 240, 180, .4); }
+.mode-chip { font-size: 10px; padding: 4px 8px; border-radius: 999px; border: 1px solid rgba(110, 240, 180, .4); color: #6ef0b4; }
 .group { margin-bottom: 14px; }
 .group-title { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .1em; margin: 10px 4px 8px; display: flex; justify-content: space-between; }
 .group-title span { opacity: .5; }

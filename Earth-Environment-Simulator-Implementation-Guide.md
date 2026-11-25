@@ -15,7 +15,7 @@
 在一个三维地球里查看**全球数值预报**与**实时地球事件**：全球风、温、湿、压、云、降水、
 3D 体积云、机场观测，以及地震、航班、热带气旋、日冕物质抛射、极光和太阳风。
 用户进入应用即可看到最近可用的真实数据；可旋转、缩放地球，点选任意位置查询数值，
-切换预报图层并用时间轴回放。断网或离线演示时使用 `fixture` 模式。
+切换预报图层并用时间轴回放。项目只接入真实上游数据，无演示模式。
 
 ### 1.1 当前界面与交互
 
@@ -24,7 +24,7 @@
 | 顶部导航「看预报」 | 唯一导航项 | 选中第一个可用的预报图层；无「看现在」「算这个区域」 |
 | 左侧「数据图层」 | 30 个预报图层（按常用度排序） | 单一「全球预报」分组，由 `src/layerOrder.ts` 统一排序：近地常用天气（风/气温/气压/降水/湿度/露点/能见度/体积云）→ 高空诊断 → 高分辨率区域 → 海洋 → IFS → GEFS；未列入的新图层保持原顺序置于末尾。另含渲染控制、实时事件、视觉特效、数据源面板 |
 | 中部三维地球 | 主视图 | 旋转、缩放、点选取值；定位栏支持经纬度搜索与常用位置保存 |
-| 底部时间轴 | 播放/倍率/轨道/缺帧提示 | 无模式切换器（观测/区域模拟已移除）；来源标注「全球预报 / 演示」 |
+| 底部时间轴 | 播放/倍率/轨道/缺帧提示 | 无模式切换器（观测/区域模拟已移除）；来源标注「全球预报」 |
 | 右侧「点位详情」 | 唯一详情面板 | 点选位置的图层值、单位、有效时刻、来源；无「区域模拟」tab |
 
 当前图层（`GET /api/v1/layers`，live 模式实测 30 个，全部 `kind=forecast`）：
@@ -40,7 +40,7 @@
 | 3D 体积云 | `cloud_volume` | GFS 6 层相对湿度（代理量） |
 | ECMWF IFS 对比场 | `ifs_2t`、`ifs_2d`、`ifs_msl`、`ifs_10u`、`ifs_10v`、`ifs_tcc`、`ifs_lcc`、`ifs_mcc`、`ifs_hcc`、`ifs_sd`、`ifs_tcwv`、`ifs_ssrd`、`ifs_100u`、`ifs_100v` | ECMWF IFS Open Data 0.25° |
 
-> 注：图层是否可见取决于当前数据根目录里已发布的快照；在 live 模式会过滤掉 `fixture` 来源。
+> 注：图层是否可见取决于当前数据根目录里已发布的快照。
 > `terrain`（DEM）作为独立地形渲染层，不出现在图层列表中。
 
 ### 1.2 实时事件与空间天气（非格网图层）
@@ -68,7 +68,6 @@ GDACS 与 EONET/FIRMS 同类事件按 250 km / 72h 去重，避免同一事件�
 | 类型 | 含义 | 界面标签 |
 |---|---|---|
 | forecast | 上游预报模型的指定有效时刻 | 全球预报 |
-| fixture | 用于测试和离线演示的样本 | 演示 |
 | observation | 站点观测与带出处的观测衍生产品 | 站点详情 |
 
 - 卫星资料与区域数值模拟不属于当前产品；无「观测」时间轴模式。
@@ -128,23 +127,22 @@ earth-environment-simulator/
       api/                      FastAPI 路由与响应模型
       catalog/                  SQLite 迁移、目录、发布事务
       fields/                   格网、单位、风与时间约定
-      ingest/                   GFS / IFS / HRRR / volume / METAR / realtime / DEM / fixtures / 拓扑任务
+      ingest/                   GFS / IFS / HRRR / volume / METAR / realtime / DEM / 拓扑任务
       freshness.py              数据源新鲜度评估
       ingest_tasks.py           后台刷新任务与在途合并
-      cli.py                    doctor / fixtures / sources / catalog
+      cli.py                    doctor / sources / catalog
       worker.py                 定时采集调度
     tests/
   config/defaults.toml
   deploy/Dockerfile.app
   docs/                         quickstart / data-sources / acceptance / shots
-  fixtures/                     由 ingest/fixtures.py 程序生成，可重建
   scripts/                      启动、验证与基准脚本
   compose.yaml / .env.example
   README.md
 ~~~
 
 数据根：容器内 `/data`；Windows 本机（无 `/data`）回退到仓库下 `.local-data/`。
-子目录：`catalog/`、`raw/`、`derived/`、`fixtures/`、`tmp/`、`realtime/`。
+子目录：`catalog/`、`raw/`、`derived/`、`tmp/`、`realtime/`。
 工作数据挂载在独立卷，源码与原始数据分开管理。
 
 ---
@@ -158,7 +156,7 @@ earth-environment-simulator/
 | NOAA HRRR CONUS 3 km | 10m U/V，高分辨率 LOD | NOMADS `filter_hrrr_sub.pl` | 区域格网重建与贴片渲染已验证 |
 | NOAA GFS-Wave 0.25° | 有效波高/峰值周期/平均波向 | NOMADS `filter_gfswave.pl` | 1.8MB/时效真实解码，4 图层 × 4 时效发布与浏览器验证通过 |
 | NOAA OISST v2.1 | 全球日海温 0.5°（约两周滞后） | NCEI ERDDAP 按日降采样 | 1MB NetCDF3 真实解码，`sst` 图层发布与浏览器验证通过 |
-| CAMS 全球大气成分 | AOD / 沙尘 / PM2.5，5° 降采样 | Open-Meteo `cams_global` | 适配器与 fixture 通过；本机 IP 配额触发 429，真实发布待复跑 |
+| CAMS 全球大气成分 | AOD / 沙尘 / PM2.5，5° 降采样 | Open-Meteo `cams_global` | 适配器与单元测试通过；本机 IP 配额触发 429，真实发布待复跑 |
 | NOAA GEFS 0.5° | 集合均值/离散度 + 超阈值概率 | NOMADS `geavg`/`gespr` | 1.3MB/时效，5 图层 × 3 时效真实发布；概率为高斯近似 |
 | GFS 多层相对湿度 | 6 层 RH → 3D 体积云 | 同 NOMADS，1000–500 hPa | 360×181×6 体数据，4 时效已验证 |
 | NOAA AWC METAR | 机场点观测 | `aviationweather.gov/api/data/metar` | 真实 JSON 已归一化 |
@@ -237,7 +235,7 @@ source_id + station_id + observed_at + revision 为逻辑键；204 无报告时�
   raw/metar/<fetch>.json ; raw/topography/<provider>/<tile>
   derived/<snapshot>/<frame>.bin|.png|.vol
   realtime/aurora.json ; solar_wind.json ; ...
-  fixtures/ ; tmp/
+  tmp/
 ~~~
 
 | 表 | 主键/关键字段 | 说明 |
@@ -317,10 +315,10 @@ source_id + station_id + observed_at + revision 为逻辑键；204 无报告时�
 ~~~json
 {
   "schema_version": 1,
-  "frame_id": "fixture-wind10-t03",
-  "snapshot_id": "fixture-gfs-20261120T0000Z",
-  "kind": "fixture",
-  "source_id": "demo",
+  "frame_id": "noaa-gfs-20261120T1800Z-wind10-f001",
+  "snapshot_id": "noaa-gfs-20261120T1800Z",
+  "kind": "forecast",
+  "source_id": "noaa_gfs",
   "layer_id": "wind10",
   "init_time": "2026-11-20T00:00:00Z",
   "valid_time": "2026-11-20T03:00:00Z",
@@ -333,7 +331,7 @@ source_id + station_id + observed_at + revision 为逻辑键；204 无报告时�
   "fields": [{"id": "u", "unit": "m/s"}, {"id": "v", "unit": "m/s"}],
   "encoding": {"dtype": "float32", "byte_order": "little",
                "layout": "y_x_component_interleaved", "missing": "nan"},
-  "assets": [{"role": "grid", "href": "/api/v1/assets/fixture-wind10-t03-bin"}]
+  "assets": [{"role": "grid", "href": "/api/v1/assets/noaa-gfs-20261120T1800Z-wind10-f001-bin"}]
 }
 ~~~
 
@@ -388,7 +386,7 @@ source_id + station_id + observed_at + revision 为逻辑键；204 无报告时�
 
 ### 5.4 交互布局
 
-顶部品牌 + 唯一导航「看预报」+ UTC 时钟 + 「● 在线/演示」状态；左侧数据图层与各类开关；
+顶部品牌 + 唯一导航「看预报」+ UTC 时钟 + 「● 在线」状态；左侧数据图层与各类开关；
 中部上方定位栏、中间三维地球、底部时间轴；右侧「点位详情」；底部页脚显示状态、坐标系与出处。
 普通模式默认从最近可用数据开始。
 
@@ -400,7 +398,7 @@ source_id + station_id + observed_at + revision 为逻辑键；204 无报告时�
 
 - Windows 11 可直接运行 Python + Node；Docker 路径需 WSL 2 + Docker Desktop。
 - 首轮用具备硬件加速的 Chromium 系浏览器验证 WebGL2（3D 体积云依赖 WebGL2）。
-- 安装镜像与首次获取上游数据需要网络；完成后 `fixture` 模式离线可用。
+- 安装镜像与首次获取上游数据需要网络；首次采集需等待上游发布。
 - 数据源连接从后端进行，适配器读取部署环境的代理设置；日志输出源地址、HTTP 状态与失败原因。
 
 ### 6.2 Compose 服务与配置
@@ -414,7 +412,6 @@ source_id + station_id + observed_at + revision 为逻辑键；204 无报告时�
 `.env` 建议值（详见 `.env.example` 与 `config/defaults.toml`）：
 
 ~~~dotenv
-EARTHSIM_DATA_MODE=live
 EARTHSIM_HTTP_PORT=8080
 EARTHSIM_UI_TIMEZONE=local
 EARTHSIM_STORAGE_ROOT=/data
@@ -426,7 +423,7 @@ EARTHSIM_DERIVED_CACHE_GIB=12
 EARTHSIM_MIN_FREE_DISK_GIB=8
 ~~~
 
-`live` 为默认（README 与 .env.example）；`fixture` 全离线并标「演示」。
+只提供真实在线模式，无演示模式。
 修改 `.env` 后 `docker compose up -d` 重建受影响容器；数据卷 `earth_data` 保留。
 
 ### 6.3 命令入口
@@ -435,8 +432,6 @@ EARTHSIM_MIN_FREE_DISK_GIB=8
 # 本机（仓库根目录）
 cp .env.example .env
 python -m earthsim.cli doctor
-python -m earthsim.cli fixtures install
-python -m earthsim.cli fixtures verify
 python -m uvicorn earthsim.api.app:app --host 127.0.0.1 --port 8080   # 在 backend/ 下
 
 # Docker Compose
@@ -463,7 +458,7 @@ cd apps/web && npm run build                     # dist 由 FastAPI 同源托管
 
 | 表现 | 先看 | 处理信息 |
 |---|---|---|
-| 地球加载、天气无数据 | 显示模式、sources 状态、活动快照 | fixture 是否已安装；是否等待采集；最近成功时间 |
+| 地球加载、天气无数据 | sources 状态、活动快照 | 是否等待采集；最近成功时间 |
 | GFS 最近周期 404 | 候选周期、目录、lead hour | 未发布或路径错误；退回上一可用批次 |
 | 上游 429/503 | 源状态、Retry-After、在途任务数 | 退避时间，合并刷新任务，缓存仍可用 |
 | 站点为空/过期 | 站点列表、报告时刻、204 | 核对 ICAO 与报告频率，标出最近历史观测 |
@@ -491,9 +486,8 @@ cd apps/web && npm run build                     # dist 由 FastAPI 同源托管
 
 ### 7.2 当前验证结果（2026-11-24）
 
-- 后端：`EARTHSIM_DATA_MODE=fixture python -m pytest -q` → **36 passed**。
+- 后端：`python -m pytest -q` → **104 passed**（测试数据由 pytest 临时目录提供）。
 - 前端：`npm test -- --run` → **19 passed**；`npm run build` 通过（vue-tsc + vite）。
-- Fixture 校验：`python -m earthsim.cli fixtures verify` → 全部资产校验通过。
 - 在线 API：`/api/v1/health` ok，`/api/v1/layers` 返回 20 个 forecast 图层；
   `/api/v1/simulation/*` 返回 404（确认已移除）。
 - 浏览器实测：顶部仅「看预报」；右侧无 tab；时间轴无模式按钮；20 个全球预报图层；
@@ -528,7 +522,7 @@ cd apps/web && npm run build                     # dist 由 FastAPI 同源托管
 
 - 可运行仓库：前后端、依赖锁文件、Compose、Dockerfile.app、Windows/WSL 指南。
 - 可复用数据源适配器、时间/空间数据契约、SQLite 迁移与可追溯资产、断网缓存。
-- 可交互地球、时间轴、图层与点查；真实数据与演示状态清楚可见。
+- 可交互地球、时间轴、图层与点查；真实数据与数据源状态清楚可见。
 - 实时事件与空间天气、3D 体积云、高分辨率 LOD 与真实昼夜。
 - 自动化测试、联网验证记录、性能基线与重复运行命令。
 - 与当前功能一致的 README 与 docs（本文、quickstart、data-sources、acceptance）。

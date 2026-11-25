@@ -18,9 +18,9 @@ def test_health_and_layers():
 def test_frames_manifest_asset_and_sample():
     fr = client.get("/api/v1/layers/wind10/frames").json()
     assert fr["frames"] and fr["snapshot_id"]
-    fid = "fixture-wind10-t03"
+    fid = "test-wind10-t03"
     m = client.get(f"/api/v1/frames/{fid}").json()
-    assert m["schema_version"] == 1 and m["grid"]["nx"] == 181
+    assert m["schema_version"] == 1 and m["grid"]["nx"] == 9
     adr = m["assets"][0]["href"]
     a = client.get(adr)
     assert a.status_code == 200

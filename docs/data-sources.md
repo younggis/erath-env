@@ -14,10 +14,9 @@ python scripts/probe_live.py            # 上游连通性与实际 HTTP 状态
 python -m earthsim.cli sources probe    # 经适配器的探测
 python -m earthsim.cli sources refresh --source noaa_gfs
 python -m earthsim.cli sources refresh --source awc_metar
-python -m earthsim.cli fixtures install && python -m earthsim.cli fixtures verify
 ```
 
-`EARTHSIM_DATA_MODE=fixture` 时不访问网络；`live` 时才由 API/CLI/worker 触发采集。
+采集由 API/CLI/worker 触发，全部上游均为真实公开数据源。
 
 ## 1. NOAA GFS 0.25°（核心全球预报）
 
@@ -100,7 +99,7 @@ python -m earthsim.cli fixtures install && python -m earthsim.cli fixtures verif
   最后一列由首列复制形成 4326 环绕接缝。
 - 发布图层 `cams_aod`、`cams_dust`、`cams_pm25`；零值在色板中透明，避免洁净空气涂满全球。
 - **当前限制**：本机 IP 在反复调试中触发 Open-Meteo 429（配额/限流），真实全球发布未能在本轮完成。
-  适配器、格网解码、帧生成与 API 注册均有 fixture 测试；成功后会缓存到 `raw/cams/latest.json`，
+  适配器、格网解码、帧生成与 API 注册均有单元测试；成功后会缓存到 `raw/cams/latest.json`，
   后续限流或断网仍可复用上一份数据。待配额恢复或目标机复跑 `sources refresh --source cams`。
 - 诚实声明：这是 CAMS 0.4° 数据的 **5° 降采样可视化**，不是原始全分辨率场。
 
@@ -178,21 +177,13 @@ python -m earthsim.cli fixtures install && python -m earthsim.cli fixtures verif
 
 - 来源：<https://registry.opendata.aws/copernicus-dem/>、<https://dataspace.copernicus.eu/>
 - 适配器实现 `tile_key/tile_url` 与 GeoTIFF 元数据读取（CRS、NoData、像元尺寸、垂直基准 EGM96、角点范围）；本机 rasterio 1.4.3 可用。
-- 离线样本：`raw/topography/fixture/fixture-dem-alps.bin` + `.json`（合成山谷，含 NoData 哨兵），SHA-256（bin）`ed167068942d0d39e24896bbef0e661cd5ec8b1e3eb1e22ee58e55bc93c9a314`。
-- 状态：真实 DEM 瓦片待在目标机验证；fixture 已闭环（注册为可查询的 `terrain` 帧，前端用独立地形层渲染）。
+- 状态：真实 DEM 瓦片待在目标机验证；地形适配器与目录注册已由单元测试覆盖（`terrain` 帧用独立地形层渲染）。
 
-## 6. M0 固定样本校验和
+## 6. 已发布样本校验和
 
 | sample_id | 路径（相对数据根） | 字节 | SHA-256 |
 |---|---|---:|---|
-| fixture-gfs-wind10-t03 | derived/fixture-gfs-20261120T0000Z/fixture-wind10-t03.bin | 131768 | `15f9b13a0ac8841a0b741662e4cfdaf1a549b6c69e4eee167cfce7bf17b41d08` |
-| fixture-gfs-temp2m-t00 | derived/fixture-gfs-20261120T0000Z/fixture-temp2m-t00.bin | 65884 | `6fd4f621edd03f0ebe1ae6da19c7d8f556240d21af34276bcace82a92b45bdef` |
-| fixture-metar-batch | raw/metar/fixture-metar-20261120T0000Z.json | 16880 | `17ff7427070f3eb2f4d9c822ae641e14f0b39879021f732b06ac29cb20027d93` |
-| fixture-dem-alps | raw/topography/fixture/fixture-dem-alps.bin | 16384 | `ed167068942d0d39e24896bbef0e661cd5ec8b1e3eb1e22ee58e55bc93c9a314` |
 | live-metar-20261120T1607 | raw/metar/2026-11-20T160746.json | 922 | `7053364f932ada38560fb394bfc70668737b20f75befb411145db1eb7ec8e054` |
 | live-gfs-wind10-f001 | derived/noaa-gfs-20261120T1800Z/noaa-gfs-20261120T1800Z-wind10-f001.bin | 8311688 | `69192238837a6436c9ad6b9f66aa9fb197add9c3f08f9b21f0924981238214df` |
 
-（`fixture-himawari-b13-00` 已随卫星图层移除。）
-
-所有 fixture 由固定解析函数生成，可通过 `python -m earthsim.cli fixtures install` 完全重建；
-`fixtures verify` 校验目录登记的每个资产校验和与长度（当前校验全部通过）。
+每个已发布资产的 SHA-256 与长度在发布事务中登记，可由 `/api/v1/assets/{asset_id}` 取回并校验。

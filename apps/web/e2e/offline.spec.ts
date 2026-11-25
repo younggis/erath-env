@@ -1,6 +1,6 @@
 /**
- * Playwright E2E for the offline vertical slice (AC-01 / AC-05 / AC-06).
- * Requires a running fixture-mode API at 127.0.0.1:8080 with fixtures installed.
+ * Playwright E2E for the live vertical slice (AC-01 / AC-05 / AC-06).
+ * Requires a running API at 127.0.0.1:8080 with at least one published source.
  *   npx playwright install chromium
  *   npx playwright test
  */
@@ -8,12 +8,11 @@ import { test, expect } from '@playwright/test'
 
 const BASE = process.env.EARTHSIM_BASE_URL || 'http://127.0.0.1:8080'
 
-test('offline boot shows demo badge, layers and timeline', async ({ page }) => {
+test('boot shows online badge, layers and timeline', async ({ page }) => {
   await page.goto(BASE)
-  await expect(page.getByText('● 演示')).toBeVisible()
+  await expect(page.getByText('● 在线')).toBeVisible()
   await expect(page.getByText('数据图层')).toBeVisible()
   await expect(page.getByText('10 m 风')).toBeVisible()
-  await expect(page.getByText('观测')).toBeVisible()
   await expect(page.locator('input[type=range]').first()).toBeVisible()
 })
 
@@ -21,7 +20,7 @@ test('switching layer updates legend, unit and source time', async ({ page }) =>
   await page.goto(BASE)
   await page.getByRole('button', { name: /2 m 气温/ }).first().click()
   await expect(page.locator('.detail')).toContainText('2 m 气温')
-  await expect(page.locator('.globe-hud')).toContainText('2026-11-20T00:00:00Z')
+  await expect(page.locator('.globe-hud')).toContainText(/20\d\d-\d\d-\d\d/)
 })
 
 test('clicking the globe issues a sample query with metadata', async ({ page }) => {

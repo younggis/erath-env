@@ -63,7 +63,7 @@ def test_fetch_states_raises_after_exhausted_retries(monkeypatch):
     assert exc.value.code == "SOURCE_THROTTLED"
 
 
-def test_refresh_with_fixture_inserts_altitude():
+def test_refresh_with_fetcher_inserts_altitude():
     result = opensky.refresh(fetcher=lambda url: {
         "status_code": 200, "body": {"states": [_state()]}})
     assert result["ok"] is True and result["events"] == 1

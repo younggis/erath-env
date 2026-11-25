@@ -35,7 +35,7 @@ const error = computed(() => store.state.apiError)
       </nav>
       <div class="top-right">
         <span class="clock">{{ clock }}</span>
-        <span class="live" :class="store.state.mode">{{ store.state.mode === 'fixture' ? '● 演示' : '● 在线' }}</span>
+        <span class="live">● 在线</span>
       </div>
     </header>
 
@@ -77,9 +77,7 @@ const error = computed(() => store.state.apiError)
 .nav button.active { color: var(--accent); background: rgba(94,200,255,.1); border-color: rgba(94,200,255,.3); }
 .top-right { margin-left: auto; display: flex; align-items: center; gap: 16px; }
 .clock { font: 11px ui-monospace, monospace; color: var(--muted); }
-.live { font-size: 11px; padding: 5px 10px; border-radius: 999px; border: 1px solid var(--line); }
-.live.fixture { color: #ffd479; border-color: rgba(255,212,121,.35); }
-.live.live { color: #6ef0b4; border-color: rgba(110,240,180,.35); }
+.live { font-size: 11px; padding: 5px 10px; border-radius: 999px; border: 1px solid rgba(110,240,180,.35); color: #6ef0b4; }
 .error-bar { padding: 8px 18px; background: rgba(220,70,70,.15); border-bottom: 1px solid rgba(220,70,70,.4); color: #ffb3b3; font-size: 12px; }
 .error-bar button { margin-left: 12px; background: transparent; border: 1px solid #ffb3b3; color: #ffb3b3; border-radius: 5px; cursor: pointer; }
 .layout { flex: 1; display: grid; grid-template-columns: 248px 1fr 330px; min-height: 0; }

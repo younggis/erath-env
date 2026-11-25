@@ -15,10 +15,12 @@ def test_cloud_mapping_is_not_surface_temperature():
 
 
 def test_dem_terrain_frame_registered():
-    snap = repo.get_active_snapshot("demo-dem")
+    snap = repo.get_active_snapshot("cop-dem")
     assert snap is not None
     frames = repo.list_frames("terrain", snap["snapshot_id"])
     assert len(frames) == 1
     f = repo.get_frame(frames[0]["frame_id"])
     assert f["fields"][0]["id"] == "elevation"
     assert f["grid"]["nx"] == 64
+    asset = f["assets"][0]
+    assert repo.checksum(repo.asset_path(asset)) == asset["sha256"]

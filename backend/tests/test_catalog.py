@@ -2,18 +2,11 @@
 from earthsim.catalog import repository as repo
 from earthsim.catalog.db import migrate, db_path
 from earthsim.config import get_settings
-from earthsim.ingest import fixtures
 
 
 def test_migrations_idempotent():
     assert migrate() == []
     assert db_path().exists()
-
-
-def test_fixtures_installed_and_checksums_ok():
-    result = fixtures.verify_all()
-    assert result["ok"], result["problems"]
-    assert result["checked"] > 100
 
 
 def test_publish_is_atomic_and_active_pointer_single():
@@ -34,7 +27,7 @@ def test_publish_is_atomic_and_active_pointer_single():
 
 
 def test_frame_and_asset_lookup():
-    frames = repo.list_frames("wind10", "fixture-gfs-20261120T0000Z")
+    frames = repo.list_frames("wind10", "test-gfs-20261120T0000Z")
     assert len(frames) == 25
     f = repo.get_frame(frames[3]["frame_id"])
     assert f["layer_id"] == "wind10" and len(f["assets"]) == 1

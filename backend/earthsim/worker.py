@@ -1,7 +1,6 @@
 """Background ingest worker.
 
-In fixture mode it only guarantees offline samples are installed. In live mode
-it polls each enabled source on its configured interval; each collector merges
+Polls each enabled source on its configured interval; each collector merges
 in-flight refreshes and keeps the last published batch on failure.
 """
 from __future__ import annotations
@@ -14,7 +13,7 @@ from datetime import datetime, timezone
 
 from .config import get_settings
 from .catalog import repository as repo
-from .ingest import cables, disasters, gefs, fixtures, gfs, metar, ifs, ndbc, oisst, openaq, realtime, satellites, volume, wave
+from .ingest import cables, disasters, gefs, gfs, metar, ifs, ndbc, oisst, openaq, realtime, satellites, volume, wave
 
 log = logging.getLogger("earthsim.worker")
 _stop = False
@@ -30,10 +29,6 @@ def _handle_stop(signum, frame):  # pragma: no cover
 
 
 def run_once(settings) -> None:
-    if settings.data_mode == "fixture":
-        fixtures.install_all()
-        log.info("fixture 样本已就绪")
-        return
     for source, interval, fn in (
         ("noaa_gfs", settings.gfs_poll_seconds, gfs.refresh),
         ("awc_metar", settings.metar_poll_seconds, metar.refresh),
@@ -69,15 +64,11 @@ def main() -> None:
     signal.signal(signal.SIGINT, _handle_stop)
     settings = get_settings()
     repo.ensure_migrated()
-    log.info("worker 启动，模式=%s", settings.data_mode)
+    log.info("worker 启动")
     intervals = [settings.gfs_poll_seconds, settings.satellite_poll_seconds, settings.metar_poll_seconds]
     next_run = [0.0, 0.0, 0.0]
     while not _stop:
         now = time.time()
-        if settings.data_mode == "fixture":
-            run_once(settings)
-            time.sleep(60)
-            continue
         jobs = (
             ("noaa_gfs", gfs.refresh),
             ("awc_metar", metar.refresh),

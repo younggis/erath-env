@@ -9,11 +9,15 @@ from fastapi.testclient import TestClient
 from earthsim.api.app import app
 
 c = TestClient(app)
+frames = c.get("/api/v1/layers/wind10/frames").json().get("frames", [])
+if not frames:
+    raise SystemExit("no published wind10 frame available; refresh the source first")
+frame_id = frames[0]["frame_id"]
 lat = []
 for i in range(120):
     lon = -170 + i * 2.8
     t = time.perf_counter()
-    r = c.get("/api/v1/sample", params={"frame_id": "fixture-wind10-t03", "lon": lon, "lat": 10})
+    r = c.get("/api/v1/sample", params={"frame_id": frame_id, "lon": lon, "lat": 10})
     lat.append((time.perf_counter() - t) * 1000)
     assert r.status_code == 200
 lat.sort()

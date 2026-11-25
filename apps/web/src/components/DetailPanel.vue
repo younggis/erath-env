@@ -239,7 +239,7 @@ const valFmt = (v: number | null) => v === null ? '—' : (Math.abs(v) >= 100 ? 
       <div v-else class="sub">3D 体积云基于多层相对湿度的云密度代理（非真实云水含量），无数值色标；可用左侧密度滑块调节浓淡。</div>
       <div class="kv"><span>数据来源</span><b>{{ layer?.source_id || '—' }}</b></div>
       <div class="kv"><span>采样方式</span><b>{{ store.state.selected?.sampling_method || '—' }}</b></div>
-      <div class="kv"><span>数据状态</span><b :class="layer?.source_kind === 'fixture' ? 'warn' : 'ok'">{{ layer?.source_kind === 'fixture' ? '演示样本' : '已发布' }}</b></div>
+      <div class="kv"><span>数据状态</span><b class="ok">{{ store.state.selected?.kind === 'forecast' ? '已发布' : (store.state.selected?.kind || '—') }}</b></div>
     </div>
   </section>
 </template>

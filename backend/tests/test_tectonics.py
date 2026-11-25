@@ -47,7 +47,7 @@ def test_static_endpoint_etag_and_304():
     assert r2.headers["etag"] == r.headers["etag"]
 
 
-def test_refresh_with_fixture_fetcher():
+def test_refresh_with_injected_fetcher():
     payload = json.dumps(SAMPLE).encode()
     result = tectonics.refresh(fetcher=lambda url: payload)
     assert result["ok"] is True and result["features"] == 1

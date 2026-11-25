@@ -6,10 +6,9 @@ import uuid
 from datetime import datetime, timezone
 from typing import Callable
 
-from .config import get_settings
 from .catalog import repository as repo
 from .freshness import assess
-from .ingest import cables, cams, disasters, gefs, gfs, metar, fixtures, hrrr, ifs, ndbc, oisst, openaq, realtime, satellites, tectonics, volume, wave
+from .ingest import cables, cams, disasters, gefs, gfs, metar, hrrr, ifs, ndbc, oisst, openaq, realtime, satellites, tectonics, volume, wave
 from .fields.timeutil import to_iso
 
 TASKS: dict[str, dict] = {}
@@ -39,7 +38,6 @@ _FUNCTIONS: dict[str, Callable] = {
     "eonet": disasters.refresh_eonet,
     "nasa_firms": disasters.refresh_firms,
     "realtime_all": realtime.refresh,
-    "demo": fixtures.install_all,
 }
 _ACTIVE: set[str] = set()
 
@@ -89,14 +87,9 @@ def get_task(task_id: str) -> dict | None:
 
 
 def auto_refresh_if_needed() -> None:
-    """Called at API startup: in live mode, kick off refresh for any stale source."""
-    if get_settings().data_mode == "fixture":
-        request_refresh("demo")
-        return
+    """Called at API startup: kick off refresh for any stale source."""
     status = assess()
     for ds in status["datasets"]:
-        if ds["source_kind"] != "live":
-            continue
         if ds["state"] in ("missing", "stale", "unknown", "candidate"):
             try:
                 request_refresh(ds["source_id"])

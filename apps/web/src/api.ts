@@ -3,7 +3,6 @@ export interface Layer {
   layer_id: string
   label: string
   kind: string
-  source_kind: string
   source_id: string
   attribution: string
   license_url: string
@@ -33,7 +32,7 @@ export interface Sample {
   values: Array<{ id: string; unit: string; value: any; display_value: any; display_unit?: string }>
   sampling_method: string
   quality: Record<string, any>
-  source_kind: string
+  kind: string
   note?: string
 }
 
@@ -118,13 +117,13 @@ export interface LightningStrike {
 }
 
 export const api = {
-  health: () => get<{ status: string; mode: string; version: string }>('/api/v1/health'),
+  health: () => get<{ status: string; version: string }>('/api/v1/health'),
   sources: () => get<any>('/api/v1/sources'),
-  dataStatus: () => get<{ mode: string; all_live: boolean; server_time: string;
+  dataStatus: () => get<{ all_live: boolean; server_time: string;
     datasets: Array<{ dataset_id: string; source_id: string; state: string; fresh: boolean;
-      age_minutes: number | null; timestamp: string | null; last_error: string | null;
-      source_kind: string }>; note: string }>('/api/v1/data-status'),
-  layers: () => get<{ layers: Layer[]; mode: string }>('/api/v1/layers'),
+      age_minutes: number | null; timestamp: string | null; last_error: string | null }>;
+    note: string }>('/api/v1/data-status'),
+  layers: () => get<{ layers: Layer[] }>('/api/v1/layers'),
   frames: (layerId: string, signal?: AbortSignal) =>
     get<{ frames: Frame[]; snapshot_id: string; missing_times: string[] }>(
       `/api/v1/layers/${encodeURIComponent(layerId)}/frames`, signal),
