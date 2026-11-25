@@ -387,6 +387,10 @@ onMounted(async () => {
   renderer.setDisasterPolygonsVisible(store.state.showDisasterPolygons)
   renderer.setSatellitesVisible(store.state.showSatellites)
   renderer.setCablesVisible(store.state.showCables)
+  renderer.setTectonicsVisible(store.state.showTectonics)
+  if (store.state.showTectonics) {
+    store.loadTectonics().then(() => renderer?.setTectonics(store.state.tectonicPlates))
+  }
   if (store.state.showCables) {
     store.loadCables().then(() => renderer?.setCables(store.state.cables, store.state.cableLandings))
   }
@@ -550,6 +554,10 @@ watch(() => store.state.showSatellites, (v) => {
 watch(() => store.state.showCables, (v) => {
   renderer?.setCablesVisible(v)
   if (v) store.loadCables().then(() => renderer?.setCables(store.state.cables, store.state.cableLandings))
+})
+watch(() => store.state.showTectonics, (v) => {
+  renderer?.setTectonicsVisible(v)
+  if (v) store.loadTectonics().then(() => renderer?.setTectonics(store.state.tectonicPlates))
 })
 watch(() => store.state.showSolarWind, v => renderer?.setSolarWindVisible(v))
 watch(() => store.state.showLightning, (v) => {

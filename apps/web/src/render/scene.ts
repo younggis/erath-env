@@ -17,6 +17,7 @@ import { DisasterPolygonLayer } from './disasterPolygons'
 import { SatelliteLayer } from './satellites'
 import { FlightTrailLayer } from './flightTrails'
 import { CableLayer } from './cables'
+import { TectonicLayer } from './tectonicLayer'
 import { StationLayer } from './stations'
 import { TerrainLayer } from './terrain'
 import { SkyLayer } from './sky'
@@ -69,6 +70,7 @@ export class EarthRenderer {
   private satellites = new SatelliteLayer()
   private flightTrails = new FlightTrailLayer()
   private cables = new CableLayer()
+  private tectonics = new TectonicLayer()
   private trailsWanted = true
   private windVisible = true
   private gpuWindEnabled = false
@@ -217,6 +219,7 @@ export class EarthRenderer {
     this.scene.add(this.flightTrails.lines)
     this.scene.add(this.cables.lines)
     this.scene.add(this.cables.landings)
+    this.scene.add(this.tectonics.lines)
     this.scene.add(this.jet.lines)
     this.scene.add(this.stations.points)
     this.scene.add(this.aurora.mesh)
@@ -434,6 +437,8 @@ export class EarthRenderer {
   setAirQualityVisible(v: boolean): void { this.airQuality.setVisible(v) }
   setDisasterPolygons(polygons: import('./disasterPolygons').DisasterPolygon[]): void { this.disasters.setPolygons(polygons) }
   setDisasterPolygonsVisible(v: boolean): void { this.disasters.setVisible(v) }
+  setTectonics(features: any[]): void { this.tectonics.setData(features) }
+  setTectonicsVisible(v: boolean): void { this.tectonics.setVisible(v) }
   setCables(cables: any[], landings: any[]): void { this.cables.setData(cables, landings) }
   setCablesVisible(v: boolean): void { this.cables.setVisible(v) }
   setFlightTrails(events: import('../realtime').RealtimeEvent[]): void { this.flightTrails.setFlights(events) }
@@ -693,6 +698,7 @@ export class EarthRenderer {
     this.solarWind.update(this.elapsed)
     this.volume.update(this.camera.position, sunDir, this.elapsed)
     this.lightning.update()
+    this.tectonics.update(this.elapsed)
     this.satellites.update(now)
     // High-resolution satellite tiles for the current view centre. Update at
     // most a few times per second; TileLayer dedups identical tile keys.
@@ -738,7 +744,7 @@ export class EarthRenderer {
     this.pauseLoop()
     this.resizeObserver.disconnect()
     this.controls.dispose()
-    this.field.dispose(); this.wind.dispose(); this.gpuWind.dispose(); this.trails.dispose(); this.buoys.dispose(); this.lightning.dispose(); this.airQuality.dispose(); this.disasters.dispose(); this.satellites.dispose(); this.flightTrails.dispose(); this.cables.dispose(); this.jet.dispose(); this.stations.dispose()
+    this.field.dispose(); this.wind.dispose(); this.gpuWind.dispose(); this.trails.dispose(); this.buoys.dispose(); this.lightning.dispose(); this.airQuality.dispose(); this.disasters.dispose(); this.satellites.dispose(); this.flightTrails.dispose(); this.cables.dispose(); this.tectonics.dispose(); this.jet.dispose(); this.stations.dispose()
     if (this.hiresMesh) {
       this.scene.remove(this.hiresMesh)
       this.hiresMesh.geometry.dispose()

@@ -71,7 +71,7 @@ def cmd_sources(args) -> int:
             result["metar"] = f"error: {e}"
         print(json.dumps(result, ensure_ascii=False, indent=2))
     elif args.action == "refresh":
-        from .ingest import cables, cams, firms, gefs, hrrr, ifs, ndbc, oisst, openaq, realtime, satellites, volume, wave
+        from .ingest import cables, cams, firms, gefs, hrrr, ifs, ndbc, oisst, openaq, realtime, satellites, tectonics, volume, wave
         fn = {"noaa_gfs": gfs.refresh,
               "hrrr": hrrr.refresh, "ecmwf_ifs": ifs.refresh,
               "gfs_volume": volume.refresh,
@@ -84,6 +84,7 @@ def cmd_sources(args) -> int:
               "openaq": openaq.refresh,
               "celestrak": satellites.refresh,
               "telegeography": cables.refresh,
+              "tectonics": tectonics.refresh,
               "awc_metar": metar.refresh,
               "usgs_quake": realtime.refresh_quakes, "opensky": realtime.refresh_flights,
               "nhc_storm": realtime.refresh_storms, "nasa_cme": realtime.refresh_cme,

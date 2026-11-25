@@ -114,6 +114,20 @@ def data_status() -> dict:
     return assess()
 
 
+@router.get("/static/tectonic-plates")
+def tectonic_plates(request: Request) -> Response:
+    """Bundled tectonic plate boundaries with ETag revalidation (offline-safe)."""
+    from ..ingest import tectonics
+    asset = tectonics.read_asset()
+    if not asset:
+        raise ApiError("NO_TECTONIC_DATA", "板块边界资产缺失", 404)
+    payload, etag = asset
+    headers = {"ETag": etag, "Cache-Control": "public, max-age=86400"}
+    if request.headers.get("if-none-match") == etag:
+        return Response(status_code=304, headers=headers)
+    return Response(content=payload, media_type="application/json", headers=headers)
+
+
 @router.get("/infra/cables")
 def infra_cables(request: Request, type: str = "cables") -> Response:
     """Cached TeleGeography cable / landing-point GeoJSON with ETag revalidation."""

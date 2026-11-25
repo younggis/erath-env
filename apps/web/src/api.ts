@@ -144,6 +144,7 @@ export const api = {
       // the station layer must only show METAR reports.
       source_id: 'awc_metar',
     })}`),
+  tectonicPlates: () => get<{ features: any[] }>('/api/v1/static/tectonic-plates'),
   cables: () => get<{ features: any[] }>('/api/v1/infra/cables?type=cables'),
   cableLandings: () => get<{ features: any[] }>('/api/v1/infra/cables?type=landing'),
   tle: () => get<{ satellites: TleRecord[]; count: number; groups: Record<string, { count: number }> }>(
