@@ -1,6 +1,7 @@
 """FastAPI application factory."""
 from __future__ import annotations
 
+import logging
 import time
 import uuid
 from contextlib import asynccontextmanager
@@ -13,6 +14,8 @@ from fastapi.staticfiles import StaticFiles
 from ..config import REPO_ROOT, get_settings
 from ..catalog import repository as repo
 from .routes import router, ApiError, _error, request_id
+
+log = logging.getLogger(__name__)
 
 
 @asynccontextmanager
@@ -62,7 +65,9 @@ async def handle_api_error(request: Request, exc: ApiError):
 
 @app.exception_handler(Exception)
 async def handle_unexpected(request: Request, exc: Exception):
-    return _error("INTERNAL_ERROR", f"内部错误：{exc}", 500)
+    # Do not echo exception text: it can contain filesystem paths or upstream URLs.
+    log.exception("unhandled error for %s", request.url.path)
+    return _error("INTERNAL_ERROR", "内部错误，请稍后重试", 500)
 
 
 # Serve a production build when present; development uses Vite's proxy.
