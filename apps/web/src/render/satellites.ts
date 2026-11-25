@@ -2,7 +2,8 @@
 import * as THREE from 'three'
 import { GLOBE_R, ll2xyz } from './geo'
 import {
-  footprintAngle, orbitRing, propagateGeodetic, type SatPosition, type TleRecord,
+  footprintAngle, orbitRing, propagateSatrec, satrecFromTle,
+  type SatPosition, type TleRecord,
 } from './satelliteOrbit'
 
 const EARTH_KM = 6371
@@ -47,6 +48,7 @@ export class SatelliteLayer {
   private orbitMat: THREE.LineBasicMaterial
   private fovMat: THREE.LineBasicMaterial
   private tles: TleRecord[] = []
+  private satrecs: ReturnType<typeof satrecFromTle>[] = []
   private lastUpdate = 0
 
   constructor() {
@@ -79,6 +81,7 @@ export class SatelliteLayer {
 
   setTles(tles: TleRecord[]): void {
     this.tles = tles.slice(0, MAX_SATS)
+    this.satrecs = this.tles.map(t => satrecFromTle(t.line1, t.line2))
     this.lastUpdate = 0
   }
 
@@ -98,8 +101,12 @@ export class SatelliteLayer {
     const positions: number[] = []
     const orbitPositions: number[] = []
     const fovPositions: number[] = []
-    for (const tle of this.tles) {
-      const pos: SatPosition | null = propagateGeodetic(tle.line1, tle.line2, date)
+    for (let idx = 0; idx < this.tles.length; idx++) {
+      const tle = this.tles[idx]
+      const satrec = this.satrecs[idx]
+      const pos: SatPosition | null = satrec
+        ? propagateSatrec(satrec, date)
+        : null
       if (!pos) continue
       const p = ll2xyz(pos.lon, pos.lat, satRadius(pos.altKm))
       positions.push(p.x, p.y, p.z)

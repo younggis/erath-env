@@ -14,7 +14,7 @@ from datetime import datetime, timezone
 
 from .config import get_settings
 from .catalog import repository as repo
-from .ingest import disasters, gefs, fixtures, gfs, metar, ifs, oisst, realtime, volume, wave
+from .ingest import cables, disasters, gefs, fixtures, gfs, metar, ifs, ndbc, oisst, openaq, realtime, satellites, volume, wave
 
 log = logging.getLogger("earthsim.worker")
 _stop = False
@@ -42,6 +42,10 @@ def run_once(settings) -> None:
         ("noaa_wave", settings.gfs_poll_seconds, wave.refresh),
         ("noaa_oisst", settings.gfs_poll_seconds, oisst.refresh),
         ("noaa_gefs", settings.gfs_poll_seconds, gefs.refresh),
+        ("noaa_ndbc", settings.realtime_poll_seconds, ndbc.refresh),
+        ("openaq", settings.gfs_poll_seconds, openaq.refresh),
+        ("celestrak", settings.gfs_poll_seconds, satellites.refresh),
+        ("telegeography", settings.gfs_poll_seconds, cables.refresh),
         ("usgs_quake", settings.realtime_poll_seconds, realtime.refresh_quakes),
         ("opensky", settings.realtime_poll_seconds, realtime.refresh_flights),
         ("nhc_storm", settings.realtime_poll_seconds, realtime.refresh_storms),
@@ -82,6 +86,10 @@ def main() -> None:
             ("noaa_wave", wave.refresh),
             ("noaa_oisst", oisst.refresh),
             ("noaa_gefs", gefs.refresh),
+            ("noaa_ndbc", ndbc.refresh),
+            ("openaq", openaq.refresh),
+            ("celestrak", satellites.refresh),
+            ("telegeography", cables.refresh),
             ("usgs_quake", realtime.refresh_quakes),
             ("opensky", realtime.refresh_flights),
             ("nhc_storm", realtime.refresh_storms),
@@ -95,7 +103,14 @@ def main() -> None:
         intervals = [settings.gfs_poll_seconds, settings.metar_poll_seconds,
                      settings.gfs_poll_seconds, settings.gfs_poll_seconds,
                      settings.gfs_poll_seconds, settings.gfs_poll_seconds,
-                     settings.gfs_poll_seconds] + [settings.realtime_poll_seconds] * 9
+                     settings.gfs_poll_seconds,
+                     settings.realtime_poll_seconds,  # noaa_ndbc
+                     settings.gfs_poll_seconds,       # openaq
+                     settings.gfs_poll_seconds,       # celestrak
+                     settings.gfs_poll_seconds,       # telegeography
+                     ] + [settings.realtime_poll_seconds] * 9
+        if len(intervals) != len(jobs):
+            raise RuntimeError(f"worker intervals/jobs 不匹配：{len(intervals)} vs {len(jobs)}")
         next_run = next_run + [0.0] * (len(jobs) - len(next_run))
         # Run due sources concurrently and fire-and-forget: a slow collector
         # (e.g. IFS's 95 MB download) must not block the loop or starve fast

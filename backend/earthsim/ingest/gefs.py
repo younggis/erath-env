@@ -128,14 +128,22 @@ def _erf_probability(speed: np.ndarray, sigma: np.ndarray, threshold: float = 10
     return np.clip((0.5 * (1.0 + erf)) * 100.0, 0, 100).astype(np.float32)
 
 
-def build_frames(init: datetime, mean: dict, spread: dict, leads: list[int]) -> list[dict]:
+def build_frames(init: datetime, mean: dict, spread: dict, leads: list[int],
+                 by_valid: dict[tuple[str, str], dict] | None = None) -> list[dict]:
     snap_id = f"noaa-gefs-{init:%Y%m%dT%H%M}Z"
     frames: list[dict] = []
     for lead in leads:
         valid = to_iso(init + timedelta(hours=lead))
-        u, v = mean.get("10u"), mean.get("10v")
-        su, sv = spread.get("10u"), spread.get("10v")
-        temp, stemp = mean.get("2t"), spread.get("2t")
+        if by_valid is not None:
+            mean_at = by_valid.get(("geavg", valid)) or {}
+            spread_at = by_valid.get(("gespr", valid)) or {}
+            u, v = mean_at.get("10u"), mean_at.get("10v")
+            su, sv = spread_at.get("10u"), spread_at.get("10v")
+            temp, stemp = mean_at.get("2t"), spread_at.get("2t")
+        else:
+            u, v = mean.get("10u"), mean.get("10v")
+            su, sv = spread.get("10u"), spread.get("10v")
+            temp, stemp = mean.get("2t"), spread.get("2t")
         if u is None or v is None or su is None or sv is None or temp is None or stemp is None:
             raise IngestError("INCOMPLETE_BATCH", f"缺少 GEFS 核心字段 @{valid}")
         speed = np.hypot(u, v)
@@ -189,12 +197,7 @@ def refresh(max_leads: int | None = None) -> dict:
                 if not path.exists():
                     path = download(ini, lead, kind)
                 decoded[(kind, to_iso(ini + timedelta(hours=lead)))] = decode_messages(path)
-        frames = build_frames(
-            ini,
-            {k: v for (kind, _), d in decoded.items() if kind == "geavg" for k, v in d.items()},
-            {k: v for (kind, _), d in decoded.items() if kind == "gespr" for k, v in d.items()},
-            leads,
-        )
+        frames = build_frames(ini, {}, {}, leads, by_valid=decoded)
     except Exception as e:  # noqa: BLE001
         err = e if isinstance(e, IngestError) else IngestError("FETCH_FAILED", str(e))
         mark_failure(SOURCE_ID, err)

@@ -573,6 +573,7 @@ onBeforeUnmount(() => {
   if (rt) clearInterval(rt)
   const lt = (host.value as any)?.__lightningTimer
   if (lt) clearInterval(lt)
+  if (toastTimer) window.clearTimeout(toastTimer)
   host.value?.removeEventListener('pointerdown', onPointerDown)
   host.value?.removeEventListener('pointerup', onPointerUp)
   renderer?.dispose()

@@ -205,7 +205,12 @@ def get_asset(asset_id: str) -> dict | None:
 
 
 def asset_path(asset: dict) -> Path:
-    return get_settings().data_root / asset["relative_path"]
+    """Resolve an asset strictly inside the configured data root."""
+    root = get_settings().data_root.resolve()
+    path = (root / asset["relative_path"]).resolve()
+    if root != path and root not in path.parents:
+        raise ValueError("asset path escapes data root")
+    return path
 
 
 def checksum(path: Path) -> str:

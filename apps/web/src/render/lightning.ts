@@ -71,7 +71,8 @@ export class LightningLayer {
     strikes.forEach((s, i) => {
       const p = ll2xyz(s.lon, s.lat, GLOBE_R * 1.03)
       positions[i * 3] = p.x; positions[i * 3 + 1] = p.y; positions[i * 3 + 2] = p.z
-      times[i] = Date.parse(s.observed_at) / 1000
+      const parsed = Date.parse(s.observed_at) / 1000
+      times[i] = Number.isFinite(parsed) ? parsed : Date.now() / 1000
     })
     this.points.geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3))
     this.points.geometry.setAttribute('aTime', new THREE.BufferAttribute(times, 1))

@@ -71,6 +71,12 @@ def refresh() -> dict:
         mark_success(SOURCE_ID, {"events": len(rows), "min_frp_mw": settings.firms_min_frp_mw})
         return {"ok": True, "events": len(rows), "min_frp_mw": settings.firms_min_frp_mw}
     except Exception as e:  # noqa: BLE001
-        err = e if isinstance(e, IngestError) else IngestError("FETCH_FAILED", str(e))
+        # httpx exceptions embed the full request URL; never persist the MAP_KEY.
+        message = str(e).replace(key, "***") if key else str(e)
+        err = e if isinstance(e, IngestError) else IngestError("FETCH_FAILED", message)
+        if isinstance(e, IngestError):
+            err.message = message
+            err.details = {k: (v.replace(key, "***") if isinstance(v, str) and key else v)
+                           for k, v in err.details.items()}
         mark_failure(SOURCE_ID, err)
         return {"ok": False, "error": err.code}

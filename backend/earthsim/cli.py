@@ -89,7 +89,6 @@ def cmd_sources(args) -> int:
               "nhc_storm": realtime.refresh_storms, "nasa_cme": realtime.refresh_cme,
               "noaa_aurora": realtime.refresh_aurora, "noaa_solar_wind": realtime.refresh_solar_wind,
               "gdacs": disasters.refresh_gdacs, "eonet": disasters.refresh_eonet,
-              "nasa_firms": disasters.refresh_firms,
               "realtime_all": realtime.refresh}.get(args.source)
         if not fn:
             print(f"unknown source {args.source}", file=sys.stderr)

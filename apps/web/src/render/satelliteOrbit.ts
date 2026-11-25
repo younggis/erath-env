@@ -22,10 +22,9 @@ export function satrecFromTle(line1: string, line2: string) {
   return twoline2satrec(line1, line2)
 }
 
-/** Propagate one TLE to `date` and convert ECI -> ECF -> geodetic. */
-export function propagateGeodetic(line1: string, line2: string, date: Date): SatPosition | null {
+/** Propagate a pre-parsed satrec to `date` -> geodetic (no repeated TLE parse). */
+export function propagateSatrec(satrec: ReturnType<typeof satrecFromTle>, date: Date): SatPosition | null {
   try {
-    const satrec = satrecFromTle(line1, line2)
     const pv: any = propagate(satrec, date)
     const pos = pv && pv.position
     if (!pos || typeof pos === 'boolean') return null
@@ -37,6 +36,15 @@ export function propagateGeodetic(line1: string, line2: string, date: Date): Sat
     if (![lon, lat, altKm].every(v => typeof v === 'number' && Number.isFinite(v))) return null
     if (lon < -180 || lon > 180 || lat < -90 || lat > 90) return null
     return { lon, lat, altKm }
+  } catch {
+    return null
+  }
+}
+
+/** Propagate one TLE to `date` and convert ECI -> geodetic. */
+export function propagateGeodetic(line1: string, line2: string, date: Date): SatPosition | null {
+  try {
+    return propagateSatrec(satrecFromTle(line1, line2), date)
   } catch {
     return null
   }

@@ -251,12 +251,14 @@ export const store = {
         values: new Float32Array(buf),
         grid: { nx: v.nx, ny: v.ny, lon0: -180, lat0: -90, dx: 360 / (v.nx - 1), dy: 180 / (v.ny - 1), wrap_longitude: true },
       })
+      evictCaches(frameId)
       state.frameDataRev++
       return
     }
     const imageAsset = (manifest.assets || []).find((a: any) => a.role === 'image')
     if (imageAsset) {
       state.imageCache.set(frameId, api.image((imageAsset.href || '').split('/').pop() || ''))
+      evictCaches(frameId)
       state.frameDataRev++
       return
     }

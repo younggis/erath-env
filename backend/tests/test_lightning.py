@@ -1,5 +1,5 @@
 """Blitzortung lightning cache: window expiry, coordinate validation, backoff."""
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from fastapi.testclient import TestClient
 
@@ -32,12 +32,17 @@ def test_parse_strike_dict_and_array():
 
 def test_window_pruning_removes_expired_strikes():
     cache = lightning.LightningCache(window_minutes=5, max_strikes=100)
+    now = datetime.now(timezone.utc)
+    old_ts = (now - timedelta(minutes=25)).timestamp()
+    new_ts = (now - timedelta(minutes=2)).timestamp()
+    # Wide window during ingest so neither is pruned, then a narrow prune now.
+    cache.window = timedelta(minutes=60)
     cache.ingest([
-        {"id": "old", "lon": 10, "lat": 20, "time": 1795564800},   # 00:00Z
-        {"id": "new", "lon": 11, "lat": 21, "time": 1795565100},   # 00:05Z
+        {"id": "old", "lon": 10, "lat": 20, "time": old_ts},
+        {"id": "new", "lon": 11, "lat": 21, "time": new_ts},
     ])
     assert cache.size() == 2
-    now = datetime(2026, 11, 25, 0, 7, tzinfo=timezone.utc)
+    cache.window = timedelta(minutes=5)
     removed = cache.prune(now)
     assert removed == 1
     assert [s["id"] for s in cache.snapshot()] == ["new"]

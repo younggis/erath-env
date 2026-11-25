@@ -31,6 +31,7 @@ export interface BuoyPoint {
 export class BuoyLayer {
   readonly points: THREE.Points
   private material: THREE.ShaderMaterial
+  private wanted = false
 
   constructor() {
     const geo = new THREE.BufferGeometry()
@@ -53,10 +54,11 @@ export class BuoyLayer {
       positions[i * 3] = p.x; positions[i * 3 + 1] = p.y; positions[i * 3 + 2] = p.z
     })
     this.points.geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3))
-    this.points.visible = buoys.length > 0
+    this.setVisible(this.wanted)
   }
 
   setVisible(v: boolean): void {
+    this.wanted = !!v
     this.points.visible = v && this.points.geometry.getAttribute('position').count > 0
   }
 

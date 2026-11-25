@@ -48,6 +48,7 @@ export class DisasterPolygonLayer {
   readonly badges: THREE.Points
   private lineMat: THREE.LineBasicMaterial
   private badgeMat: THREE.ShaderMaterial
+  private wanted = false
 
   constructor() {
     const lineGeo = new THREE.BufferGeometry()
@@ -105,11 +106,11 @@ export class DisasterPolygonLayer {
       new THREE.BufferAttribute(new Float32Array(badgePos), 3))
     this.badges.geometry.setAttribute('aColor',
       new THREE.BufferAttribute(new Float32Array(badgeColor), 3))
-    this.lines.visible = positions.length > 0
-    this.badges.visible = badgePos.length > 0
+    this.setVisible(this.wanted)
   }
 
   setVisible(v: boolean): void {
+    this.wanted = !!v
     this.lines.visible = v && this.lines.geometry.getAttribute('position').count > 0
     this.badges.visible = v && this.badges.geometry.getAttribute('position').count > 0
   }

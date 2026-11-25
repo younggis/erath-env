@@ -173,6 +173,18 @@ def refresh(fetcher: Callable[[str, dict, float], Any] | None = None) -> dict:
         if not rows:
             raise IngestError("NO_STATIONS", "OpenAQ 未返回有效站点")
         repo.insert_observations(rows)
+        now = to_iso(datetime.now(timezone.utc))
+        repo.ensure_dataset(DATASET_ID, SOURCE_ID, "observation",
+                            "OpenAQ v3 全球地面空气质量监测站", "OpenAQ",
+                            "https://openaq.org/")
+        snap_id = f"openaq-{datetime.now(timezone.utc):%Y%m%dT%H%M}Z"
+        repo.insert_snapshot({
+            "snapshot_id": snap_id, "dataset_id": DATASET_ID,
+            "identity_key": now, "init_time": now,
+            "observed_start": now, "observed_end": now,
+            "payload_version": "1", "state": "published", "published_at": now,
+            "details": {"stations": len(rows)},
+        }, [], publish=True)
         mark_success(SOURCE_ID, {"stations": len(rows)})
         return {"ok": True, "stations": len(rows)}
     except Exception as e:  # noqa: BLE001
