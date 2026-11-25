@@ -85,6 +85,7 @@ const label: Record<string, string> = { forecast: '全球预报', fixture: '演�
     <div class="group-title">✦ 视觉特效</div>
     <label class="row col"><span>夜间城市灯光 <b>{{ store.state.nightLights.toFixed(1) }}</b></span>
       <input type="range" min="0" max="3" step="0.1" v-model.number="store.state.nightLights" /></label>
+    <label class="row"><span>🌊 海洋黄金航道夜光 (World Bank AIS)</span><input type="checkbox" v-model="store.state.showShippingLights" /></label>
     <label class="row col"><span>流动云层 <b>{{ Math.round(store.state.cloudStrength * 100) }}%</b></span>
       <input type="range" min="0" max="1" step="0.05" v-model.number="store.state.cloudStrength" /></label>
     <label class="row"><span>高清卫星瓦片 (Esri)</span><input type="checkbox" v-model="store.state.hdTiles" /></label>

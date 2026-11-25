@@ -97,6 +97,7 @@ const state = reactive({
   showTerrain: false,
   // visual effects
   nightLights: 0.7,
+  showShippingLights: true,
   cloudStrength: 0.35,
   cinematicGrade: true,
   bloom: true,

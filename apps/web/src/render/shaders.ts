@@ -86,6 +86,8 @@ uniform float uNightLights;
 uniform float uCloudStrength;
 uniform sampler2D uWaveMap;
 uniform float uWaveStrength;
+uniform sampler2D uShippingMap;
+uniform float uShippingStrength;
 varying vec2 vUv;
 varying vec3 vNormalW;
 varying vec3 vWorldPos;
@@ -142,6 +144,22 @@ void main(){
   night += nightTex * (0.8 + 2.0*lum) * uNightLights;
 
   vec3 col = mix(night, day, dayAmt);
+
+  // World Bank AIS shipping density: golden lanes glow over the oceans,
+  // strongest on the night side and along the terminator.  Masked by the
+  // ocean colour so land/cities are untouched, and reduced where the solar
+  // glint or wave foam is already bright.  Drawn on the globe base, so the
+  // wind and ocean-current particles above it stay fully visible.
+  if (uShippingStrength > 0.001) {
+    float ship = texture2D(uShippingMap, vUv).r;
+    float lane = pow(ship, 1.3);
+    float nightWeight = 0.12 + 0.88 * (1.0 - dayAmt);
+    vec3 gold = mix(vec3(0.92,0.55,0.16), vec3(1.0,0.93,0.58), lane);
+    float glow = ocean * lane * uShippingStrength * nightWeight
+               * (1.0 + term*1.2 + rim*0.6)
+               * (1.0 - clamp(spec + foam, 0.0, 1.0));
+    col += gold * glow * 1.15;
+  }
 
   // Animated thin cirrus veil (procedural, kept sparse so the map stays visible).
   float c = fbm3(vec3(vUv*vec2(9.0,4.5), uTime*0.008));
@@ -248,6 +266,8 @@ export function makeEarthMaterial(texture: THREE.Texture | null, nightTexture: T
       uCloudStrength: { value: 0.35 },
       uWaveMap: { value: null },
       uWaveStrength: { value: 0 },
+      uShippingMap: { value: null },
+      uShippingStrength: { value: 0 },
     },
   })
 }

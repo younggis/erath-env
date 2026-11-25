@@ -125,6 +125,7 @@ export class EarthRenderer {
   private resizeObserver: ResizeObserver
   private basemap: THREE.Texture | null = null
   private nightTexture: THREE.Texture | null = null
+  private shippingTexture: THREE.Texture | null = null
   private waveTexture: THREE.DataTexture | null = null
   private imagePatch: THREE.Mesh | null = null
   private imageLoadToken = 0
@@ -175,6 +176,11 @@ export class EarthRenderer {
       tex.colorSpace = THREE.SRGBColorSpace
       this.earthMat.uniforms.uNightMap.value = tex
       this.nightTexture = tex
+    })
+    // World Bank shipping density: 4096x2048 EPSG:4326 grayscale lanes.
+    new THREE.TextureLoader().load('/api/v1/static/shipping-density', tex => {
+      this.earthMat.uniforms.uShippingMap.value = tex
+      this.shippingTexture = tex
     })
     this.earth.renderOrder = 0
     this.scene.add(this.earth)
@@ -549,6 +555,7 @@ export class EarthRenderer {
   private simTimeOverride: Date | null = null
 
   setNightLights(v: number): void { this.earthMat.uniforms.uNightLights.value = v }
+  setShippingLights(v: boolean): void { this.earthMat.uniforms.uShippingStrength.value = v ? 1 : 0 }
   setCloudStrength(v: number): void { this.earthMat.uniforms.uCloudStrength.value = v }
   setCinematicGrade(v: boolean): void { this.postfx.setGrade(v) }
   setBloom(v: boolean): void { this.postfx.setEnabled(v) }
@@ -795,6 +802,7 @@ export class EarthRenderer {
     }
     this.basemap?.dispose()
     this.nightTexture?.dispose()
+    this.shippingTexture?.dispose()
     this.waveTexture?.dispose()
     this.earth.geometry.dispose(); this.earthMat.dispose()
     this.atmosphere.geometry.dispose(); this.atmosMat.dispose()

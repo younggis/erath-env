@@ -128,6 +128,20 @@ def static_flight_routes(request: Request) -> Response:
     return Response(content=payload, media_type="application/json", headers=headers)
 
 
+@router.get("/static/shipping-density")
+def static_shipping_density(request: Request) -> Response:
+    """World Bank shipping-density texture (4096x2048 grayscale) with ETag."""
+    from ..ingest import shipping_density
+    asset = shipping_density.read_asset()
+    if not asset:
+        raise ApiError("NO_SHIPPING_TEXTURE", "海运密度纹理缺失", 404)
+    payload, etag = asset
+    headers = {"ETag": etag, "Cache-Control": "public, max-age=86400"}
+    if request.headers.get("if-none-match") == etag:
+        return Response(status_code=304, headers=headers)
+    return Response(content=payload, media_type="image/png", headers=headers)
+
+
 @router.get("/static/volcanoes")
 def static_volcanoes(request: Request) -> Response:
     """Bundled global volcano catalogue with ETag revalidation (offline-safe)."""

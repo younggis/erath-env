@@ -1,0 +1,18 @@
+{
+  "source": "World Bank Global Shipping Traffic Density (multi-year AIS aggregate)",
+  "source_url": "https://datacatalogfiles.worldbank.org/ddh-published/0037580/DR0045406/shipdensity_global.zip",
+  "projection": "EPSG:4326",
+  "width": 4096,
+  "height": 2048,
+  "bounds": [
+    -180.0,
+    -90.0,
+    180.0,
+    90.0
+  ],
+  "pixel_size_deg": [
+    0.087890625,
+    0.087890625
+  ],
+  "encoding": "8-bit grayscale PNG, log-scaled AIS density; 0 = no traffic"
+}
