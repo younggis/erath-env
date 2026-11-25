@@ -114,6 +114,20 @@ def data_status() -> dict:
     return assess()
 
 
+@router.get("/static/volcanoes")
+def static_volcanoes(request: Request) -> Response:
+    """Bundled global volcano catalogue with ETag revalidation (offline-safe)."""
+    from ..ingest import volcanoes
+    asset = volcanoes.read_asset()
+    if not asset:
+        raise ApiError("NO_VOLCANO_DATA", "火山数据缺失", 404)
+    payload, etag = asset
+    headers = {"ETag": etag, "Cache-Control": "public, max-age=86400"}
+    if request.headers.get("if-none-match") == etag:
+        return Response(status_code=304, headers=headers)
+    return Response(content=payload, media_type="application/json", headers=headers)
+
+
 @router.get("/static/tectonic-plates")
 def tectonic_plates(request: Request) -> Response:
     """Bundled tectonic plate boundaries with ETag revalidation (offline-safe)."""

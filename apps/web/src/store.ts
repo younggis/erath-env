@@ -72,6 +72,9 @@ const state = reactive({
   showCables: false,
   tectonicPlates: [] as any[],
   showTectonics: false,
+  volcanoes: [] as any[],
+  showVolcanoes: false,
+  focusedVolcanoId: '',
   focusedDisasterId: '',
   focusedAirStationId: '',
   /** Set by the location bar; GlobeView watches and focuses the globe. */
@@ -131,6 +134,17 @@ export const store = {
     s => s.station_id === state.focusedAirStationId) || null),
   focusedDisaster: computed(() => state.disasterPolygons.find(
     p => p.event_id === state.focusedDisasterId) || null),
+  focusedVolcano: computed(() => state.volcanoes.find(
+    v => v.id === state.focusedVolcanoId) || null),
+
+  async loadVolcanoes() {
+    try {
+      const res = await api.volcanoes()
+      state.volcanoes = res.features
+    } catch {
+      state.volcanoes = []
+    }
+  },
 
   async loadTectonics() {
     try {

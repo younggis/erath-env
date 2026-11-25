@@ -251,6 +251,7 @@ function onPointerUp(event: PointerEvent) {
     // Ask DetailPanel to show this exact station.
     store.state.focusedStationId = hit.station.id
     store.state.focusedEvent = null
+    store.state.focusedVolcanoId = ''
     store.queryPoint(hit.station.lon, hit.station.lat)
   } else {
     const picked = renderer.pickEvent(event.clientX, event.clientY)
@@ -258,13 +259,25 @@ function onPointerUp(event: PointerEvent) {
       const ev = picked.event
       hud.value = `事件 ${ev.station_id} · ${ev.lat.toFixed(2)}°, ${ev.lon.toFixed(2)}°`
       store.state.focusedStationId = ''
+      store.state.focusedVolcanoId = ''
       store.state.focusedEvent = { source: ev.source_id as any, id: ev.station_id }
       store.queryPoint(ev.lon, ev.lat)
+      return
+    }
+    // Raycast instanced volcano cones first (precise 3D hit).
+    const volcano = renderer?.pickVolcano(event.clientX, event.clientY)
+    if (volcano) {
+      store.state.focusedVolcanoId = volcano.id
+      store.state.focusedStationId = ''
+      store.state.focusedEvent = null
+      hud.value = `火山 ${volcano.name} · ${volcano.elev} m · ${volcano.country}`
+      store.queryPoint(volcano.lon, volcano.lat)
       return
     }
     hud.value = `${hit.lat.toFixed(2)}°, ${hit.lon.toFixed(2)}°`
     store.state.focusedStationId = ''
     store.state.focusedEvent = null
+    store.state.focusedVolcanoId = ''
     // Pick the nearest NDBC buoy when the overlay is enabled.
     store.state.focusedBuoyId = ''
     if (store.state.showBuoys && store.state.buoys.length) {
@@ -388,6 +401,10 @@ onMounted(async () => {
   renderer.setSatellitesVisible(store.state.showSatellites)
   renderer.setCablesVisible(store.state.showCables)
   renderer.setTectonicsVisible(store.state.showTectonics)
+  renderer.setVolcanoesVisible(store.state.showVolcanoes)
+  if (store.state.showVolcanoes) {
+    store.loadVolcanoes().then(() => renderer?.setVolcanoes(store.state.volcanoes))
+  }
   if (store.state.showTectonics) {
     store.loadTectonics().then(() => renderer?.setTectonics(store.state.tectonicPlates))
   }
@@ -558,6 +575,10 @@ watch(() => store.state.showCables, (v) => {
 watch(() => store.state.showTectonics, (v) => {
   renderer?.setTectonicsVisible(v)
   if (v) store.loadTectonics().then(() => renderer?.setTectonics(store.state.tectonicPlates))
+})
+watch(() => store.state.showVolcanoes, (v) => {
+  renderer?.setVolcanoesVisible(v)
+  if (v) store.loadVolcanoes().then(() => renderer?.setVolcanoes(store.state.volcanoes))
 })
 watch(() => store.state.showSolarWind, v => renderer?.setSolarWindVisible(v))
 watch(() => store.state.showLightning, (v) => {

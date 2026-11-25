@@ -18,6 +18,7 @@ import { SatelliteLayer } from './satellites'
 import { FlightTrailLayer } from './flightTrails'
 import { CableLayer } from './cables'
 import { TectonicLayer } from './tectonicLayer'
+import { VolcanoLayer } from './volcanoLayer'
 import { StationLayer } from './stations'
 import { TerrainLayer } from './terrain'
 import { SkyLayer } from './sky'
@@ -71,6 +72,7 @@ export class EarthRenderer {
   private flightTrails = new FlightTrailLayer()
   private cables = new CableLayer()
   private tectonics = new TectonicLayer()
+  private volcanoes = new VolcanoLayer()
   private trailsWanted = true
   private windVisible = true
   private gpuWindEnabled = false
@@ -220,6 +222,7 @@ export class EarthRenderer {
     this.scene.add(this.cables.lines)
     this.scene.add(this.cables.landings)
     this.scene.add(this.tectonics.lines)
+    this.scene.add(this.volcanoes.mesh)
     this.scene.add(this.jet.lines)
     this.scene.add(this.stations.points)
     this.scene.add(this.aurora.mesh)
@@ -437,6 +440,21 @@ export class EarthRenderer {
   setAirQualityVisible(v: boolean): void { this.airQuality.setVisible(v) }
   setDisasterPolygons(polygons: import('./disasterPolygons').DisasterPolygon[]): void { this.disasters.setPolygons(polygons) }
   setDisasterPolygonsVisible(v: boolean): void { this.disasters.setVisible(v) }
+  setVolcanoes(list: any[]): void { this.volcanoes.setVolcanoes(list) }
+  setVolcanoesVisible(v: boolean): void { this.volcanoes.setVisible(v) }
+  /** Raycast the instanced volcano cones; returns the picked record. */
+  pickVolcano(clientX: number, clientY: number): any | null {
+    if (!this.volcanoes.mesh.visible) return null
+    const rect = this.renderer.domElement.getBoundingClientRect()
+    const ndc = new THREE.Vector2(
+      ((clientX - rect.left) / rect.width) * 2 - 1,
+      -((clientY - rect.top) / rect.height) * 2 + 1,
+    )
+    const ray = new THREE.Raycaster()
+    ray.setFromCamera(ndc, this.camera)
+    const hits = ray.intersectObject(this.volcanoes.mesh, false)
+    return this.volcanoes.volcanoAt(hits[0]?.instanceId)
+  }
   setTectonics(features: any[]): void { this.tectonics.setData(features) }
   setTectonicsVisible(v: boolean): void { this.tectonics.setVisible(v) }
   setCables(cables: any[], landings: any[]): void { this.cables.setData(cables, landings) }
@@ -699,6 +717,7 @@ export class EarthRenderer {
     this.volume.update(this.camera.position, sunDir, this.elapsed)
     this.lightning.update()
     this.tectonics.update(this.elapsed)
+    this.volcanoes.update(this.elapsed)
     this.satellites.update(now)
     // High-resolution satellite tiles for the current view centre. Update at
     // most a few times per second; TileLayer dedups identical tile keys.
@@ -744,7 +763,7 @@ export class EarthRenderer {
     this.pauseLoop()
     this.resizeObserver.disconnect()
     this.controls.dispose()
-    this.field.dispose(); this.wind.dispose(); this.gpuWind.dispose(); this.trails.dispose(); this.buoys.dispose(); this.lightning.dispose(); this.airQuality.dispose(); this.disasters.dispose(); this.satellites.dispose(); this.flightTrails.dispose(); this.cables.dispose(); this.tectonics.dispose(); this.jet.dispose(); this.stations.dispose()
+    this.field.dispose(); this.wind.dispose(); this.gpuWind.dispose(); this.trails.dispose(); this.buoys.dispose(); this.lightning.dispose(); this.airQuality.dispose(); this.disasters.dispose(); this.satellites.dispose(); this.flightTrails.dispose(); this.cables.dispose(); this.tectonics.dispose(); this.volcanoes.dispose(); this.jet.dispose(); this.stations.dispose()
     if (this.hiresMesh) {
       this.scene.remove(this.hiresMesh)
       this.hiresMesh.geometry.dispose()

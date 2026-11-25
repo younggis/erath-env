@@ -23,6 +23,7 @@ const station = computed(() => {
   })).sort((a, b) => a.d - b.d)[0]
   return near && near.d < 2 ? near.st : null
 })
+const volcano = computed(() => store.focusedVolcano.value)
 const disaster = computed(() => store.focusedDisaster.value)
 const disasterArea = computed(() => {
   const p = disaster.value
@@ -152,6 +153,17 @@ const valFmt = (v: number | null) => v === null ? '—' : (Math.abs(v) >= 100 ? 
       <div class="fc-list">
         <div v-for="(p, i) in forecastPoints" :key="i"><span>{{ timeLabel(p.time) }}</span><b>{{ valFmt(p.value) }} {{ p.unit }}</b></div>
       </div>
+    </div>
+
+    <div class="block" v-if="volcano">
+      <div class="eyebrow">GLOBAL VOLCANO</div>
+      <h3>{{ volcano.name }}</h3>
+      <div class="kv"><span>海拔</span><b>{{ fmt(volcano.elev) }} m</b></div>
+      <div class="kv"><span>类型</span><b>{{ volcano.type || '—' }}</b></div>
+      <div class="kv"><span>活动年代</span><b>{{ volcano.status || '—' }}</b></div>
+      <div class="kv"><span>最近喷发（年代代码）</span><b>{{ volcano.last_code || '未知' }}</b></div>
+      <div class="kv"><span>位置</span><b>{{ volcano.lat.toFixed(3) }}°, {{ volcano.lon.toFixed(3) }}°</b></div>
+      <div class="sub">{{ volcano.country }} · {{ volcano.region }} · 熔岩脉动频率按最近喷发年代近似映射</div>
     </div>
 
     <div class="block" v-if="disaster">
