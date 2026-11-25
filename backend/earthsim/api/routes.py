@@ -128,6 +128,20 @@ def static_flight_routes(request: Request) -> Response:
     return Response(content=payload, media_type="application/json", headers=headers)
 
 
+@router.get("/static/rivers")
+def static_rivers(request: Request) -> Response:
+    """Bundled Natural Earth river / lake centreline GeoJSON with ETag."""
+    from ..ingest import rivers
+    asset = rivers.read_asset()
+    if not asset:
+        raise ApiError("NO_RIVER_DATA", "水系数据缺失", 404)
+    payload, etag = asset
+    headers = {"ETag": etag, "Cache-Control": "public, max-age=86400"}
+    if request.headers.get("if-none-match") == etag:
+        return Response(status_code=304, headers=headers)
+    return Response(content=payload, media_type="application/json", headers=headers)
+
+
 @router.get("/static/power-plants")
 def static_power_plants(request: Request) -> Response:
     """Bundled WRI global power plant catalogue with ETag revalidation."""

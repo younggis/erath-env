@@ -52,6 +52,7 @@ const label: Record<string, string> = { forecast: '全球预报', fixture: '演�
     <label class="row"><span>✈ 全球航线流光网络</span><input type="checkbox" v-model="store.state.showRoutes" /></label>
     <label class="row col" v-if="store.state.showRoutes"><span>航线密度 <b>{{ Math.round(store.state.routeDensity * 100) }}%</b></span>
       <input type="range" min="0.05" max="1" step="0.05" v-model.number="store.state.routeDensity" /></label>
+    <label class="row"><span>💧 全球水系荧光脉络</span><input type="checkbox" v-model="store.state.showRivers" /></label>
     <label class="row"><span>⚡ 全球电厂能量光柱</span><input type="checkbox" v-model="store.state.showPowerPlants" /></label>
     <label class="row col" v-if="store.state.showPowerPlants"><span>能源类型筛选</span>
       <select v-model="store.state.powerFuelFilter">

@@ -413,6 +413,12 @@ onMounted(async () => {
   if (store.state.showVolcanoes) {
     store.loadVolcanoes().then(() => renderer?.setVolcanoes(store.state.volcanoes))
   }
+  renderer.setRiversVisible(store.state.showRivers)
+  if (store.state.showRivers) {
+    store.loadRivers().then(() => {
+      if (store.state.rivers) renderer?.setRivers(store.state.rivers)
+    })
+  }
   renderer.setPowerPlantsVisible(store.state.showPowerPlants)
   renderer.setPowerFuel(store.state.powerFuelFilter)
   if (store.state.showPowerPlants) {
@@ -606,6 +612,12 @@ watch(() => store.state.showRoutes, (v) => {
   })
 })
 watch(() => store.state.routeDensity, v => renderer?.setRouteDensity(v))
+watch(() => store.state.showRivers, (v) => {
+  renderer?.setRiversVisible(v)
+  if (v && !store.state.rivers) store.loadRivers().then(() => {
+    if (store.state.rivers) renderer?.setRivers(store.state.rivers)
+  })
+})
 watch(() => store.state.showPowerPlants, (v) => {
   renderer?.setPowerPlantsVisible(v)
   if (v && !store.state.powerPlants) store.loadPowerPlants().then(() => {

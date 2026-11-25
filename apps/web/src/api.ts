@@ -146,6 +146,7 @@ export const api = {
     })}`),
   flightRoutes: () => get<{ airports: Record<string, { lon: number; lat: number; name?: string }>; routes: string[][] }>(
     '/api/v1/static/flight-routes'),
+  rivers: () => get<import('./render/rivers').RiversData>('/api/v1/static/rivers'),
   powerPlants: () => get<{ fuels: string[]; plants: Array<[number, number, number, number, string]> }>(
     '/api/v1/static/power-plants'),
   volcanoes: () => get<{ features: any[] }>('/api/v1/static/volcanoes'),

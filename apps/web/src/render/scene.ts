@@ -21,6 +21,7 @@ import { TectonicLayer } from './tectonicLayer'
 import { VolcanoLayer } from './volcanoLayer'
 import { RouteArcLayer } from './routeArcs'
 import { PowerPlantLayer } from './powerPlants'
+import { RiverLayer } from './rivers'
 import { StationLayer } from './stations'
 import { TerrainLayer } from './terrain'
 import { SkyLayer } from './sky'
@@ -77,6 +78,7 @@ export class EarthRenderer {
   private volcanoes = new VolcanoLayer()
   private routes = new RouteArcLayer()
   private powerPlants = new PowerPlantLayer()
+  private rivers = new RiverLayer()
   private trailsWanted = true
   private windVisible = true
   private gpuWindEnabled = false
@@ -234,6 +236,7 @@ export class EarthRenderer {
     this.scene.add(this.tectonics.lines)
     this.scene.add(this.volcanoes.mesh)
     this.scene.add(this.powerPlants.mesh)
+    this.scene.add(this.rivers.lines)
     this.scene.add(this.routes.lines)
     this.scene.add(this.jet.lines)
     this.scene.add(this.stations.points)
@@ -458,6 +461,8 @@ export class EarthRenderer {
   setPowerPlants(data: import('./powerPlants').PowerPlantsData): void { this.powerPlants.setData(data) }
   setPowerPlantsVisible(v: boolean): void { this.powerPlants.setVisible(v) }
   setPowerFuel(fuel: string): void { this.powerPlants.setFuel(fuel) }
+  setRivers(data: import('./rivers').RiversData): void { this.rivers.setData(data) }
+  setRiversVisible(v: boolean): void { this.rivers.setVisible(v) }
   setVolcanoes(list: any[]): void { this.volcanoes.setVolcanoes(list) }
   setVolcanoesVisible(v: boolean): void { this.volcanoes.setVisible(v) }
   /** Raycast the instanced volcano cones; returns the picked record. */
@@ -784,7 +789,7 @@ export class EarthRenderer {
     this.pauseLoop()
     this.resizeObserver.disconnect()
     this.controls.dispose()
-    this.field.dispose(); this.wind.dispose(); this.gpuWind.dispose(); this.trails.dispose(); this.buoys.dispose(); this.lightning.dispose(); this.airQuality.dispose(); this.disasters.dispose(); this.satellites.dispose(); this.flightTrails.dispose(); this.cables.dispose(); this.tectonics.dispose(); this.volcanoes.dispose(); this.routes.dispose(); this.powerPlants.dispose(); this.jet.dispose(); this.stations.dispose()
+    this.field.dispose(); this.wind.dispose(); this.gpuWind.dispose(); this.trails.dispose(); this.buoys.dispose(); this.lightning.dispose(); this.airQuality.dispose(); this.disasters.dispose(); this.satellites.dispose(); this.flightTrails.dispose(); this.cables.dispose(); this.tectonics.dispose(); this.volcanoes.dispose(); this.routes.dispose(); this.powerPlants.dispose(); this.rivers.dispose(); this.jet.dispose(); this.stations.dispose()
     if (this.hiresMesh) {
       this.scene.remove(this.hiresMesh)
       this.hiresMesh.geometry.dispose()
