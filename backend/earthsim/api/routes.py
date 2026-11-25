@@ -216,7 +216,10 @@ def space_tle(groups: str | None = None, refresh: bool = False) -> dict:
     """Cached CelesTrak GP/TLE sets grouped by stations/weather/starlink."""
     from ..ingest import satellites
     selected = [g.strip() for g in groups.split(",")] if groups else None
-    return satellites.get_tles(selected, force=refresh)
+    # A plain GET must never block on a slow upstream: serve the cached TLEs
+    # (including the last good payload persisted across restarts). Explicit
+    # ?refresh=true or the refresh task performs the network fetch.
+    return satellites.get_tles(selected, force=refresh, cached_only=not refresh)
 
 
 @router.get("/obs/air-quality")
@@ -243,8 +246,11 @@ def buoys(max_age_minutes: int | None = None, bbox: str | None = None) -> dict:
         rows = [r for r in rows if w <= r["lon"] <= e and s <= r["lat"] <= n]
     age = max_age_minutes if max_age_minutes is not None else get_settings().ndbc_stale_after_minutes
     now = datetime.now(timezone.utc)
+    # NDBC observation timestamps can lag their fetch by hours; judge freshness
+    # by when the row was ingested, otherwise fresh buoys vanish from the map.
     rows = [r for r in rows
-            if abs((parse_iso(r["observed_at"]) - now).total_seconds()) <= max(1, age) * 60]
+            if abs((parse_iso(r.get("received_at") or r["observed_at"]) - now).total_seconds())
+            <= max(1, age) * 60]
     return {
         "buoys": rows, "count": len(rows), "source_id": "noaa_ndbc",
         "generated_at": to_iso(now),

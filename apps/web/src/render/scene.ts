@@ -727,6 +727,7 @@ export class EarthRenderer {
     } else this.wind.update(dt)
     this.jet.update(dt)
     this.stations.update(this.elapsed)
+    this.cables.update(this.elapsed)
     this.quakeEvents.update(this.elapsed)
     this.flightEvents.update(this.elapsed)
     this.stormEvents.update(this.elapsed)

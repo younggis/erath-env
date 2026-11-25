@@ -4,6 +4,14 @@ import type { GridInfo } from './types'
 
 export const GLOBE_R = 2
 export const R_ATMOSPHERE = 2.16
+export const EARTH_KM = 6371
+
+/** Live aircraft sit just above the surface; altitude is visually exaggerated
+ *  so cruise levels remain distinguishable at globe scale. */
+export function flightRadius(altM: number): number {
+  const altitude = Math.min(20000, Math.max(0, Number(altM) || 0))
+  return GLOBE_R * (1.004 + 3 * altitude / (EARTH_KM * 1000))
+}
 
 /** lon/lat (degrees, east/north positive) -> ECEF on a sphere of radius r.
  *  Convention: lon=0 faces +Z, lon=90E faces +X, north pole is +Y. */

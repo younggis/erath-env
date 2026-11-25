@@ -1,9 +1,8 @@
 /** Short ADS-B trail arcs lifted to each aircraft's barometric altitude. */
 import * as THREE from 'three'
-import { GLOBE_R, ll2xyz } from './geo'
+import { EARTH_KM, flightRadius, ll2xyz } from './geo'
 import type { RealtimeEvent } from '../realtime'
 
-const EARTH_KM = 6371
 const TRAIL_KM = 28
 
 function destination(latDeg: number, lonDeg: number, bearing: number,
@@ -45,7 +44,7 @@ export class FlightTrailLayer {
       const raw = v.baro_altitude_m ?? v.altitude_m
       const alt = Number(raw) || 0
       if (alt < 0) continue // never draw below the surface
-      const radius = GLOBE_R * (1 + Math.min(20000, alt) / EARTH_KM)
+      const radius = flightRadius(alt)
       const track = Number(v.true_track_deg ?? v.track_deg) || 0
       const [lon0, lat0] = destination(e.lat, e.lon, (track + 180) * Math.PI / 180, angle)
       const a = ll2xyz(lon0, lat0, radius)

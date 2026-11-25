@@ -62,6 +62,7 @@ const state = reactive({
   lightning: [] as LightningStrike[],
   showLightning: false,
   airQuality: [] as AirStation[],
+  airQualityNote: '',
   showAirQuality: false,
   disasterPolygons: [] as DisasterPolygon[],
   showDisasterPolygons: false,
@@ -221,6 +222,7 @@ export const store = {
     try {
       const res = await api.airQuality()
       state.airQuality = res.stations
+      state.airQualityNote = res.note
     } catch {
       state.airQuality = []
     }

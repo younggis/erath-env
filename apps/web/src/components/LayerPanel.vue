@@ -71,6 +71,7 @@ const activeBundle = computed(() => bundleKeysFor(store.state.activeLayerId))
     <label class="row"><span>站点标记</span><input type="checkbox" v-model="store.state.showStations" /></label>
     <label class="row"><span>海洋浮标 (NDBC)</span><input type="checkbox" v-model="store.state.showBuoys" /></label>
     <label class="row"><span>空气质量站 (OpenAQ)</span><input type="checkbox" v-model="store.state.showAirQuality" /></label>
+    <p class="hint" v-if="store.state.showAirQuality && store.state.airQualityNote">{{ store.state.airQualityNote }}</p>
     <label class="row"><span>⚡ 实时闪电 (Blitzortung)</span><input type="checkbox" v-model="store.state.showLightning" /></label>
     <label class="row"><span>🌌 极光光幕 (OVATION)</span><input type="checkbox" v-model="store.state.showAurora" /></label>
     <label class="row"><span>💨 太阳风粒子流</span><input type="checkbox" v-model="store.state.showSolarWind" /></label>

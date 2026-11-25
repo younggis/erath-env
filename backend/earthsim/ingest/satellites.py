@@ -5,6 +5,7 @@ with a TTL so the public upstream is never polled at high frequency.
 """
 from __future__ import annotations
 
+import json
 import logging
 import time
 from typing import Any, Callable
@@ -20,6 +21,25 @@ GROUPS = ("stations", "weather", "starlink")
 DEFAULT_TTL_SECONDS = 7200
 
 _cache: dict[str, dict[str, Any]] = {}
+
+
+def _cache_path(group: str):
+    return get_settings().data_root / "raw" / "space" / f"tle_{group}.json"
+
+
+def _ensure_loaded(group: str) -> None:
+    """Seed the in-memory cache from the last good payload on disk."""
+    if group in _cache:
+        return
+    path = _cache_path(group)
+    if not path.exists():
+        return
+    try:
+        entry = json.loads(path.read_text(encoding="utf-8"))
+        if isinstance(entry, dict) and entry.get("tles"):
+            _cache[group] = entry
+    except (OSError, ValueError):
+        pass
 
 
 def parse_tle_text(text: str) -> list[dict]:
@@ -67,10 +87,16 @@ def refresh_group(group: str, fetcher: Callable[[str, dict], str] | None = None)
         record["group"] = group
     entry = {"tles": records, "fetched_at": time.time(), "group": group}
     _cache[group] = entry
+    path = _cache_path(group)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(".json.part")
+    tmp.write_text(json.dumps(entry, ensure_ascii=False), encoding="utf-8")
+    tmp.replace(path)
     return entry
 
 
 def is_fresh(group: str, ttl_seconds: int | None = None) -> bool:
+    _ensure_loaded(group)
     entry = _cache.get(group)
     if not entry:
         return False
@@ -80,14 +106,16 @@ def is_fresh(group: str, ttl_seconds: int | None = None) -> bool:
 
 def get_tles(groups: list[str] | None = None,
              fetcher: Callable[[str, dict], str] | None = None,
-             force: bool = False) -> dict:
+             force: bool = False, cached_only: bool = False) -> dict:
     selected = list(groups or GROUPS)
+    for group in selected:
+        _ensure_loaded(group)
     payload: list[dict] = []
     meta: dict[str, dict] = {}
     for group in selected:
         if group not in GROUPS:
             continue
-        if force or not is_fresh(group):
+        if not cached_only and (force or not is_fresh(group)):
             try:
                 refresh_group(group, fetcher)
             except Exception as e:  # noqa: BLE001

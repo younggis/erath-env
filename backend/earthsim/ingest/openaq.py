@@ -164,6 +164,7 @@ def status() -> dict:
 
 def refresh(fetcher: Callable[[str, dict, float], Any] | None = None) -> dict:
     if not (get_settings().openaq_api_key or "").strip():
+        mark_failure(SOURCE_ID, IngestError("MISSING_API_KEY", status()["note"]))
         return {"ok": False, "enabled": False, "error": "MISSING_API_KEY",
                 "note": status()["note"]}
     try:

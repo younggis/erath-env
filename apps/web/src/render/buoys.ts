@@ -4,8 +4,9 @@ import { GLOBE_R, ll2xyz } from './geo'
 
 const VERT = /* glsl */`
 void main(){
-  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-  gl_PointSize = 7.0;
+  vec4 mv = modelViewMatrix * vec4(position, 1.0);
+  gl_Position = projectionMatrix * mv;
+  gl_PointSize = 9.0 * (7.0 / -mv.z);
 }`
 
 const FRAG = /* glsl */`

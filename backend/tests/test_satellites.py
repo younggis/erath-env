@@ -48,6 +48,26 @@ def test_cache_ttl_and_expiry_refresh(monkeypatch):
     assert third["count"] == 2 and calls == ["stations", "stations"]
 
 
+def test_tle_cache_survives_process_restart():
+    satellites._cache.clear()
+    satellites.refresh_group("weather", fetcher=lambda url, params: TLE)
+    satellites._cache.clear()  # simulate an API restart
+    data = satellites.get_tles(groups=["weather"],
+                               fetcher=lambda url, params: (_ for _ in ()).throw(
+                                   AssertionError("disk cache should avoid upstream")))
+    assert data["count"] >= 2
+    assert data["groups"]["weather"]["fetched_at"] > 0
+
+
+def test_cached_only_never_calls_upstream():
+    satellites._cache.clear()
+    satellites.refresh_group("stations", fetcher=lambda url, params: TLE)
+    data = satellites.get_tles(groups=["stations"], cached_only=True,
+                               fetcher=lambda url, params: (_ for _ in ()).throw(
+                                   AssertionError("cached_only must not fetch")))
+    assert data["count"] >= 2
+
+
 def test_tle_endpoint_returns_cached_satellites():
     satellites._cache.clear()
     satellites.refresh_group("stations", fetcher=lambda url, params: TLE)

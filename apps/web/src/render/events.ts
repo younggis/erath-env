@@ -3,7 +3,7 @@
  *  2 = tropical cyclone spiral, 3 = CME expanding cloud.
  */
 import * as THREE from 'three'
-import { ll2xyz, GLOBE_R } from './geo'
+import { ll2xyz, GLOBE_R, flightRadius } from './geo'
 import type { RealtimeEvent } from '../realtime'
 
 const R = GLOBE_R * 1.035
@@ -48,13 +48,20 @@ void main(){
     a = ring*0.95 + core;
     c = mix(vec3(0.25,0.9,1.0), vColor, 0.45+0.55*core);
   } else if(uMode < 1.5){
-    // Aircraft: directional streak rotated by true track.
+    // Aircraft: top-down plane silhouette rotated by true track (+x = nose).
     float ca=cos(vAngle), sa=sin(vAngle);
     vec2 q=vec2(p.x*ca-p.y*sa, p.x*sa+p.y*ca);
-    float streak = exp(-abs(q.y)*26.0) * smoothstep(1.0,0.05,abs(q.x));
-    float head = exp(-length(q-vec2(0.32,0.0))*9.0);
-    a = streak*0.75 + head;
-    c = mix(c, vec3(1.0), head*0.6);
+    float body = (1.0 - smoothstep(0.0, 0.055, abs(q.y)))
+               * (1.0 - smoothstep(0.80, 0.98, abs(q.x)));
+    float wingSpan = 0.08 + 0.55 * clamp(0.30 - q.x, 0.0, 1.0);
+    float wings = (1.0 - smoothstep(wingSpan - 0.10, wingSpan, abs(q.y)))
+                * (1.0 - smoothstep(0.18, 0.30, q.x)) * smoothstep(-0.68, -0.52, q.x);
+    float tailSpan = 0.05 + 0.26 * clamp(-0.55 - q.x, 0.0, 1.0);
+    float tail = (1.0 - smoothstep(tailSpan - 0.05, tailSpan, abs(q.y)))
+               * smoothstep(-0.95, -0.84, q.x) * (1.0 - smoothstep(-0.64, -0.52, q.x));
+    float nose = exp(-length(q - vec2(0.86, 0.0)) * 18.0);
+    a = max(max(body, wings), tail) * 0.88 + nose;
+    c = mix(c, vec3(1.0), nose * 0.7);
   } else if(uMode < 2.5){
     // Cyclone: counter-rotating spiral arms.
     float ang = atan(p.y,p.x);
@@ -132,9 +139,7 @@ export class EventLayer {
       // OpenSky barometric altitude lifts flights into a real 3D airspace shell.
       const rawAlt = v.baro_altitude_m ?? v.altitude_m
       const altM = Number(rawAlt) || 0
-      const radius = this.mode === 'flight'
-        ? R * (1 + Math.min(20000, Math.max(0, altM)) / 6371000)
-        : R
+      const radius = this.mode === 'flight' ? flightRadius(rawAlt) : R
       const p = ll2xyz(e.lon, e.lat, radius)
       pos.push(p.x, p.y, p.z)
       let r = 0.4, g = 0.9, b = 1.0, sz = 12
@@ -177,7 +182,7 @@ export class EventLayer {
       size.push(sz)
       const tObs = Date.parse(e.observed_at) / 1000
       age.push(Number.isFinite(tObs) ? Math.max(0, now - tObs) : 0)
-      ang.push(((Number(v.track_deg) || 0) * Math.PI) / 180)
+      ang.push(((Number(v.true_track_deg ?? v.track_deg) || 0) * Math.PI) / 180)
     }
     const geo = this.points.geometry
     geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3))

@@ -105,7 +105,8 @@ def parse_states(data: dict, received: str) -> list[dict]:
             "raw_ref": "",
         })
     if len(rows) > 6000:
-        rows.sort(key=lambda r: r["values"].get("baro_altitude_m") or 0, reverse=True)
+        # Keep the feed order: sorting by altitude discarded all low-level
+        # traffic, which looked unrealistic once aircraft fly near the surface.
         rows = rows[:6000]
     return rows
 

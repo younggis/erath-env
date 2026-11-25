@@ -79,7 +79,9 @@ def assess() -> dict:
     from .ingest.realtime import ALL_SOURCES, SOURCE_STALE_MINUTES
     sources = {x["source_id"]: x for x in repo.get_sources()}
     thr = s.realtime_poll_seconds / 60
-    for source_id, label in ALL_SOURCES.items():
+    # CelesTrak keeps TLEs in its own cache rather than the observation table.
+    extra_sources = {"celestrak": "CelesTrak 卫星轨道 TLE"}
+    for source_id, label in {**ALL_SOURCES, **extra_sources}.items():
         src = sources.get(source_id, {})
         ts_raw = src.get("last_success_at")
         ts = None

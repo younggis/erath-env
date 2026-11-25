@@ -59,6 +59,7 @@ SOURCE_STALE_MINUTES: dict[str, int] = {
     "gdacs": 360,         # event-driven; multi-hazard alerts
     "eonet": 1440,        # curated natural events, often daily
     "nasa_firms": 360,    # satellite overpasses, not continuous
+    "celestrak": 180,     # TLE sets refresh on a ~2h cadence
 }
 
 

@@ -79,13 +79,18 @@ export class SatelliteLayer {
     this.footprints.visible = false
   }
 
+  private wanted = false
+
   setTles(tles: TleRecord[]): void {
     this.tles = tles.slice(0, MAX_SATS)
     this.satrecs = this.tles.map(t => satrecFromTle(t.line1, t.line2))
     this.lastUpdate = 0
+    // TLEs often arrive after the toggle was enabled — re-apply visibility.
+    this.setVisible(this.wanted)
   }
 
   setVisible(v: boolean): void {
+    this.wanted = !!v
     const has = this.tles.length > 0
     this.points.visible = v && has
     this.orbits.visible = v && has

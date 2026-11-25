@@ -521,7 +521,10 @@ watch(() => store.state.showVolume, v => renderer?.setVolumeVisible(v))
 watch(() => store.state.volumeDensity, v => renderer?.setVolumeDensity(v))
 watch(() => store.state.showField, v => renderer?.setFieldVisible(v))
 watch(() => store.state.showStations, v => renderer?.setStationsVisible(v))
-watch(() => store.state.showBuoys, v => renderer?.setBuoysVisible(v))
+watch(() => store.state.showBuoys, v => {
+  renderer?.setBuoysVisible(v)
+  if (v) store.loadBuoys().then(() => renderer?.setBuoys(store.state.buoys))
+})
 watch(() => store.state.buoys, v => renderer?.setBuoys(v))
 watch(() => store.state.particleCount, v => renderer?.setWindCount(v))
 watch(() => store.state.speed, v => renderer?.setWindSpeed(v))
@@ -572,6 +575,10 @@ watch(() => store.state.showQuakes, v => renderer?.setQuakesVisible(v))
 watch(() => store.state.showFlights, v => {
   renderer?.setFlightsVisible(v)
   renderer?.setFlightTrailsVisible(v)
+  // The initial realtime fetch can fail while the API is still warming up.
+  if (v && !store.state.realtimeEvents.opensky?.length) {
+    store.loadRealtime().then(updateRealtime)
+  }
 })
 watch(() => store.state.showStorms, v => renderer?.setStormsVisible(v))
 watch(() => store.state.showCme, v => renderer?.setCmeVisible(v))

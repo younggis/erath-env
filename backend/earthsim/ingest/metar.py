@@ -117,8 +117,8 @@ def normalize(report: dict, received_at: str) -> dict:
         "observed_at": to_iso(datetime.fromisoformat(str(obs_at).replace("Z", "+00:00"))) if obs_at else received_at,
         "revision": str(report.get("reportTime") or "1"),
         "received_at": received_at,
-        "lon": float(report.get("lon") or 0.0),
-        "lat": float(report.get("lat") or 0.0),
+        "lon": num(report.get("lon")),
+        "lat": num(report.get("lat")),
         "values": {
             "temp_c": num(report.get("temp")),
             "dewpoint_c": num(report.get("dewp")),
@@ -155,6 +155,10 @@ def refresh(stations: list[str] | None = None) -> dict:
     if isinstance(data, dict):
         data = data.get("reports") or data.get("data") or []
     rows = [normalize(d, received) for d in data if d.get("icaoId") or d.get("stationId")]
+    # A missing AWC coordinate must never become a phantom station at 0,0.
+    rows = [r for r in rows
+            if r["lon"] is not None and r["lat"] is not None
+            and -180 <= r["lon"] <= 180 and -90 <= r["lat"] <= 90]
     root = get_settings().data_root
     rel = f"raw/metar/{received[:19].replace(':','')}.json"
     p = root / rel

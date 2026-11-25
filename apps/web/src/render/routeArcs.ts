@@ -27,11 +27,12 @@ precision highp float;
 in float vGlow;
 out vec4 f;
 void main(){
-  vec3 base = vec3(0.12, 0.48, 0.92);
-  vec3 hot = vec3(0.70, 0.96, 1.0);
+  vec3 base = vec3(0.10, 0.38, 0.75);
+  vec3 hot = vec3(0.65, 0.92, 1.0);
   vec3 col = mix(base, hot, vGlow);
-  float a = 0.14 + 0.80 * vGlow;
-  f = vec4(col * (0.35 + 1.4 * vGlow), a);
+  // Hairline arcs: keep the pulse visible but stop the whole net glowing.
+  float a = 0.045 + 0.28 * vGlow;
+  f = vec4(col * (0.18 + 0.55 * vGlow), a);
 }`
 
 export interface RouteAirport {
