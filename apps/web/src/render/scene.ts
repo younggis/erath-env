@@ -19,6 +19,7 @@ import { FlightTrailLayer } from './flightTrails'
 import { CableLayer } from './cables'
 import { TectonicLayer } from './tectonicLayer'
 import { VolcanoLayer } from './volcanoLayer'
+import { RouteArcLayer } from './routeArcs'
 import { StationLayer } from './stations'
 import { TerrainLayer } from './terrain'
 import { SkyLayer } from './sky'
@@ -73,6 +74,7 @@ export class EarthRenderer {
   private cables = new CableLayer()
   private tectonics = new TectonicLayer()
   private volcanoes = new VolcanoLayer()
+  private routes = new RouteArcLayer()
   private trailsWanted = true
   private windVisible = true
   private gpuWindEnabled = false
@@ -223,6 +225,7 @@ export class EarthRenderer {
     this.scene.add(this.cables.landings)
     this.scene.add(this.tectonics.lines)
     this.scene.add(this.volcanoes.mesh)
+    this.scene.add(this.routes.lines)
     this.scene.add(this.jet.lines)
     this.scene.add(this.stations.points)
     this.scene.add(this.aurora.mesh)
@@ -440,6 +443,9 @@ export class EarthRenderer {
   setAirQualityVisible(v: boolean): void { this.airQuality.setVisible(v) }
   setDisasterPolygons(polygons: import('./disasterPolygons').DisasterPolygon[]): void { this.disasters.setPolygons(polygons) }
   setDisasterPolygonsVisible(v: boolean): void { this.disasters.setVisible(v) }
+  setRoutes(airports: any, routes: any[]): void { this.routes.setData(airports, routes) }
+  setRoutesVisible(v: boolean): void { this.routes.setVisible(v) }
+  setRouteDensity(v: number): void { this.routes.setDensity(v) }
   setVolcanoes(list: any[]): void { this.volcanoes.setVolcanoes(list) }
   setVolcanoesVisible(v: boolean): void { this.volcanoes.setVisible(v) }
   /** Raycast the instanced volcano cones; returns the picked record. */
@@ -718,6 +724,7 @@ export class EarthRenderer {
     this.lightning.update()
     this.tectonics.update(this.elapsed)
     this.volcanoes.update(this.elapsed)
+    this.routes.update(this.elapsed)
     this.satellites.update(now)
     // High-resolution satellite tiles for the current view centre. Update at
     // most a few times per second; TileLayer dedups identical tile keys.
@@ -763,7 +770,7 @@ export class EarthRenderer {
     this.pauseLoop()
     this.resizeObserver.disconnect()
     this.controls.dispose()
-    this.field.dispose(); this.wind.dispose(); this.gpuWind.dispose(); this.trails.dispose(); this.buoys.dispose(); this.lightning.dispose(); this.airQuality.dispose(); this.disasters.dispose(); this.satellites.dispose(); this.flightTrails.dispose(); this.cables.dispose(); this.tectonics.dispose(); this.volcanoes.dispose(); this.jet.dispose(); this.stations.dispose()
+    this.field.dispose(); this.wind.dispose(); this.gpuWind.dispose(); this.trails.dispose(); this.buoys.dispose(); this.lightning.dispose(); this.airQuality.dispose(); this.disasters.dispose(); this.satellites.dispose(); this.flightTrails.dispose(); this.cables.dispose(); this.tectonics.dispose(); this.volcanoes.dispose(); this.routes.dispose(); this.jet.dispose(); this.stations.dispose()
     if (this.hiresMesh) {
       this.scene.remove(this.hiresMesh)
       this.hiresMesh.geometry.dispose()

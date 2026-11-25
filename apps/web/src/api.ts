@@ -144,6 +144,8 @@ export const api = {
       // the station layer must only show METAR reports.
       source_id: 'awc_metar',
     })}`),
+  flightRoutes: () => get<{ airports: Record<string, { lon: number; lat: number; name?: string }>; routes: string[][] }>(
+    '/api/v1/static/flight-routes'),
   volcanoes: () => get<{ features: any[] }>('/api/v1/static/volcanoes'),
   tectonicPlates: () => get<{ features: any[] }>('/api/v1/static/tectonic-plates'),
   cables: () => get<{ features: any[] }>('/api/v1/infra/cables?type=cables'),

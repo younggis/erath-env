@@ -114,6 +114,20 @@ def data_status() -> dict:
     return assess()
 
 
+@router.get("/static/flight-routes")
+def static_flight_routes(request: Request) -> Response:
+    """Bundled OpenFlights great-circle route network with ETag revalidation."""
+    from ..ingest import flight_routes
+    asset = flight_routes.read_asset()
+    if not asset:
+        raise ApiError("NO_ROUTE_DATA", "航线数据缺失", 404)
+    payload, etag = asset
+    headers = {"ETag": etag, "Cache-Control": "public, max-age=86400"}
+    if request.headers.get("if-none-match") == etag:
+        return Response(status_code=304, headers=headers)
+    return Response(content=payload, media_type="application/json", headers=headers)
+
+
 @router.get("/static/volcanoes")
 def static_volcanoes(request: Request) -> Response:
     """Bundled global volcano catalogue with ETag revalidation (offline-safe)."""

@@ -402,6 +402,13 @@ onMounted(async () => {
   renderer.setCablesVisible(store.state.showCables)
   renderer.setTectonicsVisible(store.state.showTectonics)
   renderer.setVolcanoesVisible(store.state.showVolcanoes)
+  renderer.setRoutesVisible(store.state.showRoutes)
+  renderer.setRouteDensity(store.state.routeDensity)
+  if (store.state.showRoutes) {
+    store.loadRoutes().then(() => {
+      if (store.state.routes) renderer?.setRoutes(store.state.routes.airports, store.state.routes.routes)
+    })
+  }
   if (store.state.showVolcanoes) {
     store.loadVolcanoes().then(() => renderer?.setVolcanoes(store.state.volcanoes))
   }
@@ -580,6 +587,13 @@ watch(() => store.state.showVolcanoes, (v) => {
   renderer?.setVolcanoesVisible(v)
   if (v) store.loadVolcanoes().then(() => renderer?.setVolcanoes(store.state.volcanoes))
 })
+watch(() => store.state.showRoutes, (v) => {
+  renderer?.setRoutesVisible(v)
+  if (v && !store.state.routes) store.loadRoutes().then(() => {
+    if (store.state.routes) renderer?.setRoutes(store.state.routes.airports, store.state.routes.routes)
+  })
+})
+watch(() => store.state.routeDensity, v => renderer?.setRouteDensity(v))
 watch(() => store.state.showSolarWind, v => renderer?.setSolarWindVisible(v))
 watch(() => store.state.showLightning, (v) => {
   renderer?.setLightningVisible(v)

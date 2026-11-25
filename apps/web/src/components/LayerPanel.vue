@@ -49,6 +49,9 @@ const label: Record<string, string> = { forecast: '全球预报', fixture: '演�
     <label class="row"><span>海底光缆与登陆站</span><input type="checkbox" v-model="store.state.showCables" /></label>
     <label class="row"><span>🌋 板块边界与熔岩脉动</span><input type="checkbox" v-model="store.state.showTectonics" /></label>
     <label class="row"><span>🌋 3D 火山锥体</span><input type="checkbox" v-model="store.state.showVolcanoes" /></label>
+    <label class="row"><span>✈ 全球航线流光网络</span><input type="checkbox" v-model="store.state.showRoutes" /></label>
+    <label class="row col" v-if="store.state.showRoutes"><span>航线密度 <b>{{ Math.round(store.state.routeDensity * 100) }}%</b></span>
+      <input type="range" min="0.05" max="1" step="0.05" v-model.number="store.state.routeDensity" /></label>
     <label class="row"><span>局部地形 (DEM)</span><input type="checkbox" v-model="store.state.showTerrain" /></label>
     <label class="row col" v-if="store.state.showTerrain"><span>地形夸张 <b>×{{ store.state.terrainExaggeration }}</b></span>
       <input type="range" min="0.5" max="8" step="0.5" v-model.number="store.state.terrainExaggeration" /></label>

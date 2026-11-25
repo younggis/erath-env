@@ -74,6 +74,9 @@ const state = reactive({
   showTectonics: false,
   volcanoes: [] as any[],
   showVolcanoes: false,
+  routes: null as Awaited<ReturnType<typeof api.flightRoutes>> | null,
+  showRoutes: false,
+  routeDensity: 1,
   focusedVolcanoId: '',
   focusedDisasterId: '',
   focusedAirStationId: '',
@@ -136,6 +139,14 @@ export const store = {
     p => p.event_id === state.focusedDisasterId) || null),
   focusedVolcano: computed(() => state.volcanoes.find(
     v => v.id === state.focusedVolcanoId) || null),
+
+  async loadRoutes() {
+    try {
+      state.routes = await api.flightRoutes()
+    } catch {
+      state.routes = null
+    }
+  },
 
   async loadVolcanoes() {
     try {
