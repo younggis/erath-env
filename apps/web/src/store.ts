@@ -5,6 +5,7 @@ import { sortLayers } from './layerOrder'
 import type { GridInfo } from './earth'
 import type { VolumeData } from './render/types'
 import type { EventType, RealtimeEvent, TrackData } from './realtime'
+import { transitionBundle } from './render/layerBundles'
 
 export interface GridData { values: Float32Array; grid: GridInfo; ncomp: number }
 
@@ -28,10 +29,10 @@ const state = reactive({
   showDisasters: false,
   showFires: false,
   showTracks: false,
-  showAurora: true,
+  showAurora: false,
   showSolarWind: false,
   showJet: false,
-  showVolume: true,
+  showVolume: false,
   volumeDensity: 0.08,
   volumeSteps: 48,
   activeLayerId: '' as string,
@@ -91,17 +92,17 @@ const state = reactive({
   playing: false,
   speed: 1,
   particleCount: 16000,
-  showParticles: true,
-  useGpuWind: true,
-  showTrails: true,
+  showParticles: false,
+  useGpuWind: false,
+  showTrails: false,
   showField: true,
-  showStations: true,
+  showStations: false,
   layerOpacity: 0.5,
   terrainExaggeration: 1,
   showTerrain: false,
   // visual effects
   nightLights: 0.7,
-  showShippingLights: true,
+  showShippingLights: false,
   cloudStrength: 0.35,
   cinematicGrade: true,
   bloom: true,
@@ -263,6 +264,9 @@ export const store = {
   },
 
   async selectLayer(id: string) {
+    // A layer owns a set of visual toggles. Switching layers turns the previous
+    // ones off so e.g. wind particles never linger over a temperature map.
+    Object.assign(state, transitionBundle(id))
     state.activeLayerId = id
     state.frameIndex = 0
     state.playhead = 0

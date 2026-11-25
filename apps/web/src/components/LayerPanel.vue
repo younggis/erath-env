@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { store } from '../store'
+import { bundleKeysFor } from '../render/layerBundles'
 
 const groups = computed(() => {
   const map: Record<string, any[]> = {}
@@ -8,6 +9,7 @@ const groups = computed(() => {
   return Object.entries(map)
 })
 const label: Record<string, string> = { forecast: '全球预报' }
+const activeBundle = computed(() => bundleKeysFor(store.state.activeLayerId))
 </script>
 
 <template>
@@ -20,32 +22,71 @@ const label: Record<string, string> = { forecast: '全球预报' }
       <span class="mode-chip">在线</span>
     </div>
 
+    <!-- Forecast layers: a layer expands its own effect controls when active. -->
     <div v-for="[kind, layers] in groups" :key="kind" class="group">
       <div class="group-title">{{ label[kind] || kind }} <span>{{ layers.length }}</span></div>
-      <button v-for="l in layers" :key="l.layer_id" class="layer-item"
-              :class="{ active: store.state.activeLayerId === l.layer_id }"
-              @click="store.selectLayer(l.layer_id)">
-        <span class="swatch" :style="{ background: `linear-gradient(90deg, var(--accent), var(--accent2))` }"></span>
-        <span class="layer-name">{{ l.label }}</span>
-        <span class="layer-unit">{{ l.display_unit }}</span>
-      </button>
+      <div v-for="l in layers" :key="l.layer_id">
+        <button class="layer-item"
+                :class="{ active: store.state.activeLayerId === l.layer_id }"
+                @click="store.selectLayer(l.layer_id)">
+          <span class="swatch" :style="{ background: `linear-gradient(90deg, var(--accent), var(--accent2))` }"></span>
+          <span class="layer-name">{{ l.label }}</span>
+          <span class="layer-unit">{{ l.display_unit }}</span>
+        </button>
+        <div v-if="store.state.activeLayerId === l.layer_id && activeBundle.length" class="bundle">
+          <template v-if="activeBundle.includes('showParticles')">
+            <label class="row"><span>风粒子</span><input type="checkbox" v-model="store.state.showParticles" /></label>
+            <label class="row"><span>GPU 粒子流（WebGL2）</span><input type="checkbox" v-model="store.state.useGpuWind" /></label>
+            <label class="row"><span>风场拖尾光带</span><input type="checkbox" v-model="store.state.showTrails" /></label>
+            <label class="row col"><span>粒子数量 <b>{{ store.state.particleCount }}</b></span>
+              <input type="range" min="1000" max="30000" step="1000" v-model.number="store.state.particleCount" /></label>
+          </template>
+          <label v-if="activeBundle.includes('showJet')" class="row">
+            <span>500 hPa 高空风丝带</span><input type="checkbox" v-model="store.state.showJet" />
+          </label>
+          <template v-if="activeBundle.includes('showVolume')">
+            <label class="row"><span>☁ 3D 体积云显示</span><input type="checkbox" v-model="store.state.showVolume" /></label>
+            <label class="row col" v-if="store.state.showVolume"><span>云密度 <b>{{ store.state.volumeDensity.toFixed(2) }}</b></span>
+              <input type="range" min="0.01" max="0.3" step="0.01" v-model.number="store.state.volumeDensity" /></label>
+          </template>
+        </div>
+      </div>
     </div>
 
     <div class="divider"></div>
-    <div class="group-title">渲染控制</div>
+    <div class="group-title">显示设置</div>
     <label class="row"><span>数据显示 (色带)</span><input type="checkbox" v-model="store.state.showField" /></label>
     <label class="row"><span>自动高分辨率 LOD</span><input type="checkbox" v-model="store.state.autoHiRes" /></label>
     <p class="hint">放大到美国区域（HRRR 3km 覆盖）时自动加载高分辨率数据场；其余地区用 GFS 0.25°（25km）。</p>
-    <label class="row"><span>风粒子</span><input type="checkbox" v-model="store.state.showParticles" /></label>
-    <label class="row"><span>GPU 粒子流（WebGL2）</span><input type="checkbox" v-model="store.state.useGpuWind" /></label>
-    <label class="row"><span>风场拖尾光带</span><input type="checkbox" v-model="store.state.showTrails" /></label>
-    <label class="row"><span>500 hPa 高空风丝带</span><input type="checkbox" v-model="store.state.showJet" /></label>
+    <label class="row col"><span>图层不透明度 <b>{{ Math.round(store.state.layerOpacity * 100) }}%</b></span>
+      <input type="range" min="0.1" max="1" step="0.05" v-model.number="store.state.layerOpacity" /></label>
+
+    <div class="divider"></div>
+    <div class="group-title">观测与事件</div>
+    <p class="hint" v-if="store.state.realtimeSummary">
+      Kp {{ store.state.realtimeSummary.kp ?? '—' }} · 太阳风 {{ store.state.realtimeSummary.solar_wind?.speed_kms ?? '—' }} km/s ·
+      Bz {{ store.state.realtimeSummary.solar_wind?.bz_gsm ?? '—' }} nT ·
+      更新 {{ store.state.realtimeUpdatedAt ? new Date(store.state.realtimeUpdatedAt).toLocaleTimeString() : '—' }}
+    </p>
     <label class="row"><span>站点标记</span><input type="checkbox" v-model="store.state.showStations" /></label>
     <label class="row"><span>海洋浮标 (NDBC)</span><input type="checkbox" v-model="store.state.showBuoys" /></label>
-    <label class="row"><span>⚡ 实时闪电 (Blitzortung)</span><input type="checkbox" v-model="store.state.showLightning" /></label>
     <label class="row"><span>空气质量站 (OpenAQ)</span><input type="checkbox" v-model="store.state.showAirQuality" /></label>
+    <label class="row"><span>⚡ 实时闪电 (Blitzortung)</span><input type="checkbox" v-model="store.state.showLightning" /></label>
+    <label class="row"><span>🌌 极光光幕 (OVATION)</span><input type="checkbox" v-model="store.state.showAurora" /></label>
+    <label class="row"><span>💨 太阳风粒子流</span><input type="checkbox" v-model="store.state.showSolarWind" /></label>
+    <label class="row"><span>🌋 实时地震冲击波</span><input type="checkbox" v-model="store.state.showQuakes" /></label>
+    <label class="row"><span>✈️ 实时航班流</span><input type="checkbox" v-model="store.state.showFlights" /></label>
+    <label class="row"><span>🌀 热带气旋</span><input type="checkbox" v-model="store.state.showStorms" /></label>
+    <label class="row"><span>☀️ 日冕物质抛射 CME</span><input type="checkbox" v-model="store.state.showCme" /></label>
+    <label class="row"><span>🌐 全球灾害预警 (GDACS/EONET)</span><input type="checkbox" v-model="store.state.showDisasters" /></label>
     <label class="row"><span>灾害影响范围 (GDACS)</span><input type="checkbox" v-model="store.state.showDisasterPolygons" /></label>
+    <label class="row"><span>🔥 NASA FIRMS 全球火点</span><input type="checkbox" v-model="store.state.showFires" /></label>
+    <label class="row"><span>🛰️ 全球气旋轨迹</span><input type="checkbox" v-model="store.state.showTracks" /></label>
     <label class="row"><span>卫星轨道与视锥 (CelesTrak)</span><input type="checkbox" v-model="store.state.showSatellites" /></label>
+    <p class="hint">GDACS 覆盖全球气旋/洪水/火山/干旱/野火；FIRMS 需配置免费 MAP_KEY，未配置时可看 EONET 野火事件。数据每 60s 自动刷新。</p>
+
+    <div class="divider"></div>
+    <div class="group-title">静态专题图层</div>
     <label class="row"><span>海底光缆与登陆站</span><input type="checkbox" v-model="store.state.showCables" /></label>
     <label class="row"><span>🌋 板块边界与熔岩脉动</span><input type="checkbox" v-model="store.state.showTectonics" /></label>
     <label class="row"><span>🌋 3D 火山锥体</span><input type="checkbox" v-model="store.state.showVolcanoes" /></label>
@@ -62,31 +103,6 @@ const label: Record<string, string> = { forecast: '全球预报' }
     <label class="row"><span>局部地形 (DEM)</span><input type="checkbox" v-model="store.state.showTerrain" /></label>
     <label class="row col" v-if="store.state.showTerrain"><span>地形夸张 <b>×{{ store.state.terrainExaggeration }}</b></span>
       <input type="range" min="0.5" max="8" step="0.5" v-model.number="store.state.terrainExaggeration" /></label>
-    <label class="row col"><span>粒子数量 <b>{{ store.state.particleCount }}</b></span>
-      <input type="range" min="1000" max="30000" step="1000" v-model.number="store.state.particleCount" /></label>
-    <label class="row col"><span>图层不透明度 <b>{{ Math.round(store.state.layerOpacity * 100) }}%</b></span>
-      <input type="range" min="0.1" max="1" step="0.05" v-model.number="store.state.layerOpacity" /></label>
-    <label class="row"><span>☁ 3D 体积云显示</span><input type="checkbox" v-model="store.state.showVolume" /></label>
-    <label class="row col" v-if="store.state.showVolume"><span>云密度 <b>{{ store.state.volumeDensity.toFixed(2) }}</b></span>
-      <input type="range" min="0.01" max="0.3" step="0.01" v-model.number="store.state.volumeDensity" /></label>
-
-    <div class="divider"></div>
-    <div class="group-title">⚡ 实时事件 / 空间天气</div>
-    <p class="hint" v-if="store.state.realtimeSummary">
-      Kp {{ store.state.realtimeSummary.kp ?? '—' }} · 太阳风 {{ store.state.realtimeSummary.solar_wind?.speed_kms ?? '—' }} km/s ·
-      Bz {{ store.state.realtimeSummary.solar_wind?.bz_gsm ?? '—' }} nT ·
-      更新 {{ store.state.realtimeUpdatedAt ? new Date(store.state.realtimeUpdatedAt).toLocaleTimeString() : '—' }}
-    </p>
-    <label class="row"><span>🌌 极光光幕 (OVATION)</span><input type="checkbox" v-model="store.state.showAurora" /></label>
-    <label class="row"><span>💨 太阳风粒子流</span><input type="checkbox" v-model="store.state.showSolarWind" /></label>
-    <label class="row"><span>🌋 实时地震冲击波</span><input type="checkbox" v-model="store.state.showQuakes" /></label>
-    <label class="row"><span>✈️ 实时航班流</span><input type="checkbox" v-model="store.state.showFlights" /></label>
-    <label class="row"><span>🌀 热带气旋</span><input type="checkbox" v-model="store.state.showStorms" /></label>
-    <label class="row"><span>☀️ 日冕物质抛射 CME</span><input type="checkbox" v-model="store.state.showCme" /></label>
-    <label class="row"><span>🌐 全球灾害预警 (GDACS/EONET)</span><input type="checkbox" v-model="store.state.showDisasters" /></label>
-    <label class="row"><span>🔥 NASA FIRMS 全球火点</span><input type="checkbox" v-model="store.state.showFires" /></label>
-    <label class="row"><span>🛰️ 全球气旋轨迹</span><input type="checkbox" v-model="store.state.showTracks" /></label>
-    <p class="hint">GDACS 覆盖全球气旋/洪水/火山/干旱/野火；FIRMS 需配置免费 MAP_KEY，未配置时可看 EONET 野火事件。数据每 60s 自动刷新。</p>
 
     <div class="divider"></div>
     <div class="group-title">✦ 视觉特效</div>
@@ -145,6 +161,7 @@ h2 { margin: 4px 0 0; font-size: 17px; font-weight: 650; letter-spacing: .02em; 
 .swatch { width: 22px; height: 4px; border-radius: 2px; flex: none; }
 .layer-name { flex: 1; font-size: 12.5px; }
 .layer-unit { font: 10px ui-monospace, monospace; color: var(--muted); }
+.bundle { margin: 2px 0 10px 10px; padding: 6px 8px; border-left: 2px solid rgba(94,200,255,.35); background: rgba(94,200,255,.04); border-radius: 0 6px 6px 0; }
 .divider { height: 1px; background: var(--line); margin: 16px 0 4px; }
 .row { display: flex; align-items: center; justify-content: space-between; font-size: 12px; padding: 6px 4px; color: var(--muted); }
 .row.col { flex-direction: column; align-items: stretch; gap: 6px; }
