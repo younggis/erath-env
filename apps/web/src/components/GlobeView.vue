@@ -413,6 +413,16 @@ onMounted(async () => {
   if (store.state.showVolcanoes) {
     store.loadVolcanoes().then(() => renderer?.setVolcanoes(store.state.volcanoes))
   }
+  renderer.setPowerPlantsVisible(store.state.showPowerPlants)
+  renderer.setPowerFuel(store.state.powerFuelFilter)
+  if (store.state.showPowerPlants) {
+    store.loadPowerPlants().then(() => {
+      if (store.state.powerPlants) {
+        renderer?.setPowerPlants(store.state.powerPlants)
+        renderer?.setPowerFuel(store.state.powerFuelFilter)
+      }
+    })
+  }
   if (store.state.showTectonics) {
     store.loadTectonics().then(() => renderer?.setTectonics(store.state.tectonicPlates))
   }
@@ -596,6 +606,16 @@ watch(() => store.state.showRoutes, (v) => {
   })
 })
 watch(() => store.state.routeDensity, v => renderer?.setRouteDensity(v))
+watch(() => store.state.showPowerPlants, (v) => {
+  renderer?.setPowerPlantsVisible(v)
+  if (v && !store.state.powerPlants) store.loadPowerPlants().then(() => {
+    if (store.state.powerPlants) {
+      renderer?.setPowerPlants(store.state.powerPlants)
+      renderer?.setPowerFuel(store.state.powerFuelFilter)
+    }
+  })
+})
+watch(() => store.state.powerFuelFilter, v => renderer?.setPowerFuel(v))
 watch(() => store.state.showSolarWind, v => renderer?.setSolarWindVisible(v))
 watch(() => store.state.showLightning, (v) => {
   renderer?.setLightningVisible(v)

@@ -52,6 +52,12 @@ const label: Record<string, string> = { forecast: '全球预报', fixture: '演�
     <label class="row"><span>✈ 全球航线流光网络</span><input type="checkbox" v-model="store.state.showRoutes" /></label>
     <label class="row col" v-if="store.state.showRoutes"><span>航线密度 <b>{{ Math.round(store.state.routeDensity * 100) }}%</b></span>
       <input type="range" min="0.05" max="1" step="0.05" v-model.number="store.state.routeDensity" /></label>
+    <label class="row"><span>⚡ 全球电厂能量光柱</span><input type="checkbox" v-model="store.state.showPowerPlants" /></label>
+    <label class="row col" v-if="store.state.showPowerPlants"><span>能源类型筛选</span>
+      <select v-model="store.state.powerFuelFilter">
+        <option value="all">全部 ({{ store.state.powerPlants?.plants.length ?? 0 }} 座)</option>
+        <option v-for="f in (store.state.powerPlants?.fuels ?? [])" :key="f" :value="f">{{ f }}</option>
+      </select></label>
     <label class="row"><span>局部地形 (DEM)</span><input type="checkbox" v-model="store.state.showTerrain" /></label>
     <label class="row col" v-if="store.state.showTerrain"><span>地形夸张 <b>×{{ store.state.terrainExaggeration }}</b></span>
       <input type="range" min="0.5" max="8" step="0.5" v-model.number="store.state.terrainExaggeration" /></label>
@@ -145,6 +151,7 @@ h2 { margin: 4px 0 0; font-size: 17px; font-weight: 650; letter-spacing: .02em; 
 .row.col { flex-direction: column; align-items: stretch; gap: 6px; }
 .row b { color: var(--text); font-weight: 600; }
 .row input[type=range] { accent-color: var(--accent); width: 100%; }
+.row select { width: 100%; padding: 4px 6px; font-size: 12px; color: var(--text); background: #0b1220; border: 1px solid rgba(255,255,255,.14); border-radius: 6px; }
 .sources { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
 .sources button { font-size: 11px; padding: 7px 6px; border-radius: 6px; border: 1px solid var(--line); background: rgba(255,255,255,.03); color: var(--muted); cursor: pointer; }
 .sources button:hover { border-color: var(--accent); color: var(--accent); }

@@ -128,6 +128,20 @@ def static_flight_routes(request: Request) -> Response:
     return Response(content=payload, media_type="application/json", headers=headers)
 
 
+@router.get("/static/power-plants")
+def static_power_plants(request: Request) -> Response:
+    """Bundled WRI global power plant catalogue with ETag revalidation."""
+    from ..ingest import power_plants
+    asset = power_plants.read_asset()
+    if not asset:
+        raise ApiError("NO_POWER_PLANTS", "电厂数据缺失", 404)
+    payload, etag = asset
+    headers = {"ETag": etag, "Cache-Control": "public, max-age=86400"}
+    if request.headers.get("if-none-match") == etag:
+        return Response(status_code=304, headers=headers)
+    return Response(content=payload, media_type="application/json", headers=headers)
+
+
 @router.get("/static/shipping-density")
 def static_shipping_density(request: Request) -> Response:
     """World Bank shipping-density texture (4096x2048 grayscale) with ETag."""

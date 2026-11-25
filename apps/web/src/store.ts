@@ -77,6 +77,9 @@ const state = reactive({
   routes: null as Awaited<ReturnType<typeof api.flightRoutes>> | null,
   showRoutes: false,
   routeDensity: 1,
+  powerPlants: null as Awaited<ReturnType<typeof api.powerPlants>> | null,
+  showPowerPlants: false,
+  powerFuelFilter: 'all',
   focusedVolcanoId: '',
   focusedDisasterId: '',
   focusedAirStationId: '',
@@ -146,6 +149,14 @@ export const store = {
       state.routes = await api.flightRoutes()
     } catch {
       state.routes = null
+    }
+  },
+
+  async loadPowerPlants() {
+    try {
+      state.powerPlants = await api.powerPlants()
+    } catch {
+      state.powerPlants = null
     }
   },
 
